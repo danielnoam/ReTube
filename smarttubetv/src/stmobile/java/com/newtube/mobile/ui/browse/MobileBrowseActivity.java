@@ -263,6 +263,7 @@ public class MobileBrowseActivity extends MobileActivity
         bindViews();
         setupContentGrid();
         setupBottomNav();
+        mWatchLaterTabOn = WatchLaterTab.isOn(this);
         setupYouPanel();
         setupErrorAction();
         setupSearchButton();
@@ -1596,6 +1597,8 @@ public class MobileBrowseActivity extends MobileActivity
      * tear down and re-inflate the whole bar.
      */
     private String mNavSignature;
+    /** Settings > Tabs > Watch later, as the bar was last built; a change rebuilds it on resume. */
+    private boolean mWatchLaterTabOn;
 
     // ---------------------------------------------------------------------------------
     // Downloads section
@@ -1794,6 +1797,9 @@ public class MobileBrowseActivity extends MobileActivity
 
     /** The icon a nav tab shows for this section: its outline/filled pair, else the stock icon. */
     private static int navIconOrResFor(BrowseSection section) {
+        if (WatchLaterTab.isWatchLaterSection(section)) {
+            return R.drawable.icon_watch_later;
+        }
         int navIcon = navIconFor(section.getId());
         return navIcon != 0 ? navIcon : Math.max(section.getResId(), 0);
     }
@@ -1836,13 +1842,24 @@ public class MobileBrowseActivity extends MobileActivity
         }
 
         List<BrowseSection> chosen = new ArrayList<>();
+        // The You tab always takes one of the bar's slots.
+        int maxSections = MAX_NAV_ITEMS - 1;
+        boolean watchLaterTab = WatchLaterTab.isOn(this);
 
-        for (int i = 0; i < PREFERRED_SECTION_IDS.length && chosen.size() < MAX_NAV_ITEMS; i++) {
+        for (int i = 0; i < PREFERRED_SECTION_IDS.length && chosen.size() < maxSections; i++) {
             BrowseSection match = findPreferredSection(
                     enabledSections, chosen, PREFERRED_SECTION_IDS[i], PREFERRED_SECTION_TITLE_RES[i]);
 
             if (match != null) {
                 chosen.add(match);
+            }
+
+            // Watch later sits right after Subscriptions; when the bar is full, the last tab moves to You.
+            if (watchLaterTab && PREFERRED_SECTION_IDS[i] == MediaGroup.TYPE_SUBSCRIPTIONS && chosen.size() < maxSections) {
+                BrowseSection watchLater = WatchLaterTab.pick(enabledSections);
+                if (watchLater != null) {
+                    chosen.add(watchLater);
+                }
             }
         }
 
@@ -1880,6 +1897,11 @@ public class MobileBrowseActivity extends MobileActivity
         }
 
         updateAccountRow();
+        if (mWatchLaterTabOn != WatchLaterTab.isOn(this)) {
+            mWatchLaterTabOn = !mWatchLaterTabOn;
+            rebuildBottomNav();
+            rebuildYouRows();
+        }
         // NEWTUBE(playlists): just signed in with things saved on the phone: offer to copy them.
         MediaServiceManager.instance().addAccountListener(mCopyOfferListener);
         LocalCopyOffer.maybeShow(this);

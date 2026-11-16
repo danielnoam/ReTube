@@ -339,6 +339,7 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
                             MediaServiceManager.instance().addToWatchLaterPlaylist(mVideo);
                             BrowsePresenter.instance(getContext()).onPlaylistEdited(); // #36: pinned Watch later refetches
                             mDialogPresenter.closeDialog();
+                            confirm(getContext().getString(R.string.saved_to_watch_later));
                         }
                 ));
     }
@@ -390,7 +391,7 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
                                 message = LocalWatchLater.savedMessage(getContext(), watchLater.add(video));
                             }
                             mDialogPresenter.closeDialog();
-                            MessageHelpers.showMessage(getContext(), message);
+                            confirm(message);
                         }
                 ));
     }
