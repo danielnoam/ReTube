@@ -23,6 +23,7 @@ import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
 import com.newtube.mobile.CardMenuMigration;
+import com.newtube.mobile.ui.browse.WatchLaterTab;
 import com.newtube.mobile.ui.common.MobileSnackbar;
 import com.newtube.mobile.ui.common.ThemeMode;
 
@@ -218,6 +219,10 @@ final class AppPages {
 
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_tabs_bottom_bar)));
         addSectionToggles(context, rows, sections, bottomBar, true);
+        rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_tabs_watch_later),
+                context.getString(R.string.mobile_settings_tabs_watch_later_summary),
+                () -> WatchLaterTab.isOn(context),
+                on -> WatchLaterTab.setOn(context, on)));
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_tabs_you)));
         addSectionToggles(context, rows, sections, you, true);
         rows.add(SettingsRow.header(context.getString(R.string.mobile_you_explore)));
