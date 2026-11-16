@@ -1024,7 +1024,8 @@ public class AppDialogUtil {
         return activity;
     }
 
-    private static void pinGroups(Context context, @NonNull List<ItemGroup> newGroups) {
+    // NEWTUBE(import): public for the phone's Settings > Backup > Import (SubscriptionImport).
+    public static void pinGroups(Context context, @NonNull List<ItemGroup> newGroups) {
         if (newGroups.isEmpty()) {
             // Already added to Subscriptions section
             MessageHelpers.showMessage(context, context.getString(R.string.msg_done));
@@ -1088,6 +1089,12 @@ public class AppDialogUtil {
             return;
         }
 
+        // NEWTUBE(playlists): signed out, the phone keeps the playlists (LocalPlaylistSheet).
+        if (LocalPlaylistSheet.applies()) {
+            LocalPlaylistSheet.show(context, video, callback, null);
+            return;
+        }
+
         MediaItemService itemManager = YouTubeMediaItemService.instance();
 
         Disposable playlistsInfoAction = itemManager.getPlaylistsInfoObserve(video.videoId)
@@ -1102,6 +1109,11 @@ public class AppDialogUtil {
     }
 
     public static void showAddToPlaylistDialog(Context context, Video video, VideoMenuCallback callback, List<PlaylistInfo> playlistInfos, Runnable onFinish) {
+        if (LocalPlaylistSheet.applies()) {
+            LocalPlaylistSheet.show(context, video, callback, onFinish);
+            return;
+        }
+
         // NEWTUBE(mobile): an EMPTY list is the signed-out answer, not just the null one - the
         // service short-circuits /playlist/get_add_to_playlist while signed out because it 401s.
         // An empty list built an empty sheet: a titled dialog with nothing in it and no hint that

@@ -23,6 +23,7 @@ import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.util.Rational;
 import android.util.SparseIntArray;
@@ -64,6 +65,8 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.button.MaterialButton;
+import com.liskovsoft.smartyoutubetv2.common.misc.LocalPlaylists;
+import com.liskovsoft.smartyoutubetv2.common.misc.LocalWatchLater;
 import com.liskovsoft.smartyoutubetv2.tv.BuildConfig;
 import com.liskovsoft.mediaserviceinterfaces.LiveChatService;
 import com.liskovsoft.mediaserviceinterfaces.data.MediaItemMetadata;
@@ -85,10 +88,13 @@ import androidx.media3.ui.TimeBar;
 import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.mediaserviceinterfaces.data.ChatItem;
+import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
 import com.liskovsoft.mediaserviceinterfaces.data.PlaylistInfo;
+import com.liskovsoft.smartyoutubetv2.common.app.models.data.Playlist;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.QueuePlaybackMode;
+import com.liskovsoft.smartyoutubetv2.common.app.models.playback.SleepTimer;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.manager.PlayerConstants;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.service.VideoStateService;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.service.VideoStateService.State;
@@ -119,9 +125,11 @@ import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
 import com.liskovsoft.smartyoutubetv2.common.utils.AppDialogUtil;
 import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
+import com.liskovsoft.smartyoutubetv2.common.utils.LocalPlaylistSheet;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.smartyoutubetv2.common.misc.VideoDownloads;
+import com.liskovsoft.youtubeapi.service.YouTubeSignInService;
 import com.newtube.mobile.downloads.DownloadItem;
 import com.newtube.mobile.downloads.DownloadMenu;
 import com.newtube.mobile.downloads.DownloadOption;
@@ -132,6 +140,7 @@ import com.newtube.mobile.ui.common.Haptics;
 import com.newtube.mobile.ui.common.MagneticDrag;
 import com.newtube.mobile.ui.common.MobileActivity;
 import com.newtube.mobile.ui.common.MobileSheets;
+import com.newtube.mobile.ui.common.MobileSnackbar;
 import com.newtube.mobile.ui.common.Motion;
 import com.newtube.mobile.ui.common.ThemeMode;
 import com.newtube.mobile.ui.common.ThemeRefresh;
@@ -205,6 +214,8 @@ public class MobilePlaybackActivity extends MobileActivity
     /** Previous / play-pause / next, and the top-right options: they step aside while scrubbing. */
     @Nullable private View mTransport;
     @Nullable private View mOptionsRow;
+    /** NEWTUBE(clock): the time in the fullscreen top bar, beside the title. */
+    @Nullable private View mClockView;
     /** Over the top of the video: "Release to cancel" (seek bar). */
     @Nullable private TextView mTopPill;
     /** NEWTUBE(gestures): brightness / volume while a side swipe sets it (SwipeLevels). */
@@ -340,6 +351,10 @@ public class MobilePlaybackActivity extends MobileActivity
     private ImageView mQueueChevron;
     private MaxHeightRecyclerView mQueueList;
     private RelatedVideoAdapter mQueueAdapter;
+    /** NEWTUBE(queue): the queue card's edit button, shown while the card lists the playback queue. */
+    @Nullable private View mQueueEdit;
+    /** NEWTUBE(queue): the open queue sheet, which follows the video that plays (setVideo). */
+    @Nullable private java.lang.ref.WeakReference<QueueSheet> mQueueSheet;
     /** Collapsed by default, like YouTube's queue. Survives video changes within a session. */
     private boolean mQueueExpanded;
     private final List<Video> mQueueVideos = new ArrayList<>();
@@ -514,6 +529,9 @@ public class MobilePlaybackActivity extends MobileActivity
         mPresenter.onViewInitialized();
 
         createPlayerObjects();
+
+        SleepTimer.setPlayer(this);
+        SleepTimer.setListener(this::onSleepTimerTriggered);
 
         registerPipReceiver();
 
@@ -690,6 +708,21 @@ public class MobilePlaybackActivity extends MobileActivity
         mBottomRow = findViewById(R.id.mobile_player_bottom_row);
         mTransport = findViewById(R.id.mobile_player_transport);
         mOptionsRow = findViewById(R.id.mobile_player_options);
+        mClockView = findViewById(R.id.mobile_player_clock);
+        if (mOptionsRow != null && mTitleView != null) {
+            // NEWTUBE(clock): the title stops before the options row however wide it is (the clock
+            // widens it in fullscreen), never under it; 148dp is the room the three buttons need.
+            int minEnd = Math.round(148 * getResources().getDisplayMetrics().density);
+            int gap = Math.round(4 * getResources().getDisplayMetrics().density);
+            mOptionsRow.addOnLayoutChangeListener((v, left, top, right, bottom,
+                    oldLeft, oldTop, oldRight, oldBottom) -> {
+                int end = Math.max(minEnd, (right - left) + gap);
+                if (mTitleView.getPaddingEnd() != end) {
+                    mTitleView.setPaddingRelative(mTitleView.getPaddingStart(), mTitleView.getPaddingTop(),
+                            end, mTitleView.getPaddingBottom());
+                }
+            });
+        }
         mTopPill = findViewById(R.id.mobile_player_top_pill);
         mLevelPill = findViewById(R.id.mobile_player_level_pill);
         mLevelIcon = findViewById(R.id.mobile_player_level_icon);
@@ -1024,6 +1057,10 @@ public class MobilePlaybackActivity extends MobileActivity
         mQueueList.setAdapter(mQueueAdapter);
         mQueueList.setMaxHeight(Math.round(getResources().getDisplayMetrics().heightPixels * 0.5f));
         mQueueHeader.setOnClickListener(v -> toggleQueueExpanded());
+        mQueueEdit = findViewById(R.id.mobile_watch_queue_edit);
+        if (mQueueEdit != null) {
+            mQueueEdit.setOnClickListener(v -> openQueueSheet());
+        }
 
         // Expandable description (tap the views/date row or chevron).
         mWatchMetaRow.setOnClickListener(v -> toggleDescription());
@@ -1046,9 +1083,12 @@ public class MobilePlaybackActivity extends MobileActivity
         mWatchSubscribe.setOnClickListener(v -> onSubscribeTapped());
         mWatchShare.setOnClickListener(v -> shareCurrentVideo());
         // Save opens the same add/remove-from-playlist sheet as gear -> More -> Save to playlist.
+        // NEWTUBE(playlists): signed out, Save opens the phone's Save sheet.
         mWatchSave.setOnClickListener(v -> {
-            if (!WatchActionFeedback.blockIfSignedOut(this, R.string.msg_sign_in_to_save)) {
+            if (YouTubeSignInService.instance().isSigned()) {
                 openPlayerOption(R.id.action_playlist_add, false);
+            } else {
+                openLocalSaveSheet();
             }
         });
         // Download: the quality picker, or the download's own menu once it is on the device.
@@ -1123,6 +1163,8 @@ public class MobilePlaybackActivity extends MobileActivity
             if (mTitleView != null) {
                 mTitleView.setVisibility(View.VISIBLE);
             }
+            // NEWTUBE(clock): fullscreen hides the status bar, and its clock with it.
+            updateClockVisibility(true);
         } else {
             // Configuration width is already updated when display metrics/window views can still
             // have the previous landscape bounds. The layout listener above then makes this exact
@@ -1147,7 +1189,24 @@ public class MobilePlaybackActivity extends MobileActivity
             if (mTitleView != null) {
                 mTitleView.setVisibility(View.GONE);
             }
+            updateClockVisibility(false);
         }
+    }
+
+    /**
+     * NEWTUBE(clock): the time shows in fullscreen while Settings > Player has it on, unless the
+     * status bar shows its own clock anyway (fullscreen in split screen, bars swiped in).
+     */
+    private void updateClockVisibility(boolean fullscreen) {
+        if (mClockView != null) {
+            boolean show = fullscreen && !isStatusBarShown() && PlayerData.instance(this).isClockEnabled();
+            mClockView.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private boolean isStatusBarShown() {
+        WindowInsetsCompat insets = mControlsRoot != null ? ViewCompat.getRootWindowInsets(mControlsRoot) : null;
+        return insets != null && insets.isVisible(WindowInsetsCompat.Type.statusBars());
     }
 
     /**
@@ -1450,10 +1509,13 @@ public class MobilePlaybackActivity extends MobileActivity
     @Override
     protected void onResume() {
         super.onResume();
+        SleepTimer.checkOverdue();
 
         PlayerTransitionBridge.LaunchSnapshot launch = PlayerTransitionBridge.take();
 
         mIsResumed = true;
+        // NEWTUBE(clock): Settings may have turned the fullscreen time on or off meanwhile.
+        updateClockVisibility(mTitleView != null && mTitleView.getVisibility() == View.VISIBLE);
         if (mControlsVisible && !isPlayerSheetShown()) {
             // NEWTUBE(sheet-landscape): back from a picker screen (Repeat, Zoom...) that held the
             // controls up. It only paused this screen, so onStart's countdown does not run.
@@ -1692,6 +1754,11 @@ public class MobilePlaybackActivity extends MobileActivity
 
     @Override
     protected void onDestroy() {
+        SleepTimer.setPlayer(null);
+        SleepTimer.setListener(null);
+        if (isFinishing()) {
+            SleepTimer.cancel();
+        }
         DownloadRegistry.instance(this).removeListener(mDownloadsListener);
         MobileSheets.setPlayerShown(false, false);
         cancelAutoHide();
@@ -2183,6 +2250,7 @@ public class MobilePlaybackActivity extends MobileActivity
         bleedScrim(mTopScrim, left, top, right, 0);
         bleedScrim(mBottomScrim, left, 0, right, bottom);
         applySeekBarLayout(left, top, right, bottom);
+        updateClockVisibility(isLandscape()); // NEWTUBE(clock): the status bar came or went
     }
 
     /**
@@ -4050,9 +4118,20 @@ public class MobilePlaybackActivity extends MobileActivity
         // Speed: the native preset sheet; the exhaustive TV dialog nests behind its "More speeds".
         addMenuRow(content, sheet, R.drawable.ic_player_speed, R.string.mobile_player_speed,
                 currentSpeedLabel(), true, this::showSpeedSheet);
+        // Sleep timer, like YouTube: preset durations or pause at the end of the video.
+        addMenuRow(content, sheet, R.drawable.ic_player_sleep_timer, R.string.mobile_player_sleep_timer,
+                currentSleepTimerLabel(), true, this::showSleepTimerSheet);
         if (Helpers.isPictureInPictureSupported(this)) {
             addMenuRow(content, sheet, R.drawable.ic_player_pip, R.string.mobile_player_pip,
                     null, false, this::enterPipFromMenu);
+        }
+        // NEWTUBE(queue): the queue up here while there is one, with its size; it used to sit
+        // under More as the TV's text list.
+        int queued = queuedAfterCurrent();
+        if (queued > 0) {
+            addMenuRow(content, sheet, R.drawable.ic_player_queue, R.string.mobile_queue_title,
+                    getResources().getQuantityString(R.plurals.mobile_queue_count, queued, queued),
+                    true, this::openQueueSheet);
         }
         addMenuRow(content, sheet, R.drawable.ic_mobile_settings, R.string.mobile_menu_more,
                 null, true, this::openPlayerMoreMenu);
@@ -4103,7 +4182,7 @@ public class MobilePlaybackActivity extends MobileActivity
         }
         // Playback queue.
         addMenuRow(content, sheet, R.drawable.ic_player_queue, R.string.mobile_menu_queue,
-                null, true, () -> openPlayerOption(R.id.action_playback_queue, false));
+                null, true, this::openQueueSheet);
         // Stats for nerds (debug overlay) toggle.
         addMenuRow(content, sheet, R.drawable.ic_player_stats, R.string.mobile_menu_stats,
                 stateLabel(statsOn), false, () -> openPlayerOption(R.id.action_video_stats, false));
@@ -5435,17 +5514,27 @@ public class MobilePlaybackActivity extends MobileActivity
 
     /** Fullscreen: SWIPE_BRIGHTNESS / SWIPE_VOLUME for a swipe that began at {@code rawX}, if any. */
     private int levelSwipeAt(float rawX) {
-        if (!PlayerGesturePrefs.isLevelSwipesOn(this) || isCastOverlayShown()) {
+        if (isCastOverlayShown()) {
             return PlayerContainerLayout.SWIPE_NONE;
         }
         int[] at = new int[2];
         mContainer.getLocationOnScreen(at);
         float width = Math.max(1, mContainer.getWidth());
         float x = (rawX - at[0]) / width;
-        if (x < LEVEL_ZONE && mSwipeLevels.canSwipe(SwipeLevels.BRIGHTNESS)) {
+        boolean left = x < LEVEL_ZONE;
+        if (!left && x <= 1f - LEVEL_ZONE) {
+            return PlayerContainerLayout.SWIPE_NONE; // the middle is for seeking and taps
+        }
+        // Both on: brightness left, volume right. Only one on: that one on either side. "On" is the
+        // switch and the phone: a fixed-volume phone can't swipe volume, so brightness takes both.
+        boolean brightness = PlayerGesturePrefs.isBrightnessSwipeOn(this)
+                && mSwipeLevels.canSwipe(SwipeLevels.BRIGHTNESS);
+        boolean volume = PlayerGesturePrefs.isVolumeSwipeOn(this) && mSwipeLevels.canSwipe(SwipeLevels.VOLUME);
+        int side = PlayerGesturePrefs.sideSwipe(left, brightness, volume);
+        if (side == PlayerGesturePrefs.SIDE_BRIGHTNESS) {
             return SWIPE_BRIGHTNESS;
         }
-        if (x > 1f - LEVEL_ZONE && mSwipeLevels.canSwipe(SwipeLevels.VOLUME)) {
+        if (side == PlayerGesturePrefs.SIDE_VOLUME) {
             return SWIPE_VOLUME;
         }
         return PlayerContainerLayout.SWIPE_NONE;
@@ -7253,14 +7342,13 @@ public class MobilePlaybackActivity extends MobileActivity
         for (java.util.Map.Entry<String, FormatItem> rung : rungs.entrySet()) {
             FormatItem item = rung.getValue();
             addQualityRow(qualityList, rung.getKey(), rung.getKey().equals(selectedRung), () -> {
-                // Mirrors HQDialogController.selectFormatOption: while the preset (Auto) is the
-                // persisted default, an explicit rung is a per-session override, like YouTube.
+                // NEWTUBE(quality-pin): an explicit rung is the user's STANDING choice - persist
+                // it app-wide (it survives new videos and engine restarts, and the rescues never
+                // override it) and drop any session override, so quality only changes when the
+                // user changes it. Only the Auto row below goes back to Auto.
                 setFormat(item);
-                if (isAutoFormat(playerData.getFormat(FormatItem.TYPE_VIDEO))) {
-                    playerData.setTempVideoFormat(item);
-                } else {
-                    playerData.setFormat(item);
-                }
+                playerData.setTempVideoFormat(null);
+                playerData.setFormat(item);
                 dialog.dismiss();
             });
         }
@@ -7599,6 +7687,71 @@ public class MobilePlaybackActivity extends MobileActivity
         showPlayerSheet(dialog);
     }
 
+    private String currentSleepTimerLabel() {
+        SleepTimer.checkOverdue();
+        int option = SleepTimer.getSelectedOption();
+        if (option == SleepTimer.OPTION_END_OF_VIDEO) {
+            return getString(R.string.mobile_sleep_timer_end_of_video);
+        }
+        if (option > 0) {
+            long remainingMs = SleepTimer.getTargetRealtimeMs() - SystemClock.elapsedRealtime();
+            if (remainingMs > 0) {
+                int minutes = (int) Math.max(1, Math.ceil(remainingMs / 60000.0));
+                return getResources().getQuantityString(R.plurals.mobile_settings_minutes, minutes, minutes);
+            } else {
+                SleepTimer.checkOverdue();
+            }
+        }
+        return getString(R.string.mobile_menu_off);
+    }
+
+    private void showSleepTimerSheet() {
+        cancelAutoHide();
+        SleepTimer.checkOverdue();
+
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+        View content = getLayoutInflater().inflate(R.layout.sheet_mobile_sleep_timer, null);
+        dialog.setContentView(content);
+
+        LinearLayout list = content.findViewById(R.id.sleep_timer_sheet_list);
+        int currentOption = SleepTimer.getSelectedOption();
+
+        addQualityRow(list, getString(R.string.mobile_menu_off), currentOption == SleepTimer.OPTION_OFF, () -> {
+            SleepTimer.cancel();
+            dialog.dismiss();
+            MobileSnackbar.show(this, R.string.mobile_sleep_timer_turned_off);
+        });
+
+        for (int minutes : SleepTimer.PRESETS_MINUTES) {
+            String label = getResources().getQuantityString(R.plurals.mobile_settings_minutes, minutes, minutes);
+            addQualityRow(list, label, currentOption == minutes, () -> {
+                SleepTimer.arm(minutes);
+                dialog.dismiss();
+                MobileSnackbar.show(this, getString(R.string.mobile_sleep_timer_set, label), null, null);
+            });
+        }
+
+        addQualityRow(list, getString(R.string.mobile_sleep_timer_end_of_video), currentOption == SleepTimer.OPTION_END_OF_VIDEO, () -> {
+            SleepTimer.armEndOfVideo();
+            dialog.dismiss();
+            MobileSnackbar.show(this, R.string.mobile_sleep_timer_set_end_of_video);
+        });
+
+        dialog.setOnDismissListener(d -> armAutoHide());
+        showPlayerSheet(dialog);
+    }
+
+    private void onSleepTimerTriggered() {
+        if (mExoPlayerController != null) {
+            mExoPlayerController.setPlayWhenReady(false);
+        }
+        if (mPresenter != null) {
+            mPresenter.suppressPendingRecovery();
+        }
+        updatePlayPauseIcon();
+        MobileSnackbar.show(this, R.string.mobile_sleep_timer_paused);
+    }
+
     /**
      * Apply a speed pick. The engine change fires onSpeedChanged, which VideoStateController
      * already persists (global/per-channel memory); only the per-video State save - the TV
@@ -7772,6 +7925,7 @@ public class MobilePlaybackActivity extends MobileActivity
             mWatchTitle.setText(item.getTitleFull());
         }
         updateDownloadPill();
+        updateLocalSaveState();
         // Channel name has the same bare-reload-Video blanking problem as the title above.
         if (isNewVideo || !TextUtils.isEmpty(item.getAuthor())) {
             mWatchChannelName.setText(item.getAuthor());
@@ -7809,6 +7963,34 @@ public class MobilePlaybackActivity extends MobileActivity
         }
         if (!TextUtils.isEmpty(item.description)) {
             mWatchDescription.setText(item.description);
+        }
+    }
+
+    /** Saved on the phone (signed-out use): the state the Save pill shows while signed out. */
+    private boolean isSavedLocally(String videoId) {
+        return LocalWatchLater.instance(this).contains(videoId)
+                || LocalPlaylists.instance(this).containsAnywhere(videoId);
+    }
+
+    /**
+     * NEWTUBE(watch-later): signed out, the Save pill says whether this video is saved on the phone
+     * (Watch later or a phone playlist); signed in, the shared controller sets it from the
+     * account's playlists.
+     */
+    private void updateLocalSaveState() {
+        if (YouTubeSignInService.instance().isSigned() || mWatchVideo == null) {
+            return;
+        }
+        updateButtonVisual(R.id.action_playlist_add, isSavedLocally(mWatchVideo.videoId) ? BUTTON_ON : BUTTON_OFF);
+    }
+
+    /**
+     * NEWTUBE(playlists): signed out, Save opens the phone's Save sheet (Watch later and the phone's
+     * playlists); the pill reads Saved again when it closes.
+     */
+    private void openLocalSaveSheet() {
+        if (LocalWatchLater.canSave(mWatchVideo)) {
+            LocalPlaylistSheet.show(this, mWatchVideo, null, () -> runOnUiThread(this::updateLocalSaveState));
         }
     }
 
@@ -8143,6 +8325,13 @@ public class MobilePlaybackActivity extends MobileActivity
     }
 
     private void updateButtonVisual(int buttonId, int buttonState) {
+        // NEWTUBE(watch-later): signed out, the shared controller still reports "in no playlist" once
+        // the video's data arrives (it asks the account, which has none) and would turn Saved back
+        // into Save. The phone's own lists decide the pill then.
+        if (buttonId == R.id.action_playlist_add && mWatchVideo != null
+                && !YouTubeSignInService.instance().isSigned()) {
+            buttonState = isSavedLocally(mWatchVideo.videoId) ? BUTTON_ON : BUTTON_OFF;
+        }
         boolean on = buttonState == BUTTON_ON;
 
         if (buttonId == R.id.action_thumbs_up && mWatchLikeIcon != null) {
@@ -8363,6 +8552,78 @@ public class MobilePlaybackActivity extends MobileActivity
         mPresenter.onScrollEnd(last);
     }
 
+    // ---------------------------------------------------------------------------------
+    // NEWTUBE(queue): the queue sheet
+    // ---------------------------------------------------------------------------------
+
+    /**
+     * How many videos are queued after the playing one. Not Playlist's size: every open lands in
+     * Playlist (VideoLoaderController.onNewVideo), so it is the session's history as well, and one
+     * tap on a related video made it "a queue" of two.
+     */
+    private static int queuedAfterCurrent() {
+        Playlist playlist = Playlist.instance();
+        // getAllAfterCurrent is the whole list when nothing is current; hasNext isn't.
+        List<Video> next = playlist.hasNext() ? playlist.getAllAfterCurrent() : null;
+        return next != null ? next.size() : 0;
+    }
+
+    private void openQueueSheet() {
+        cancelAutoHide();
+        if (queuedAfterCurrent() == 0) {
+            MobileSnackbar.show(this, R.string.mobile_queue_empty);
+            return;
+        }
+        QueueSheet sheet = QueueSheet.show(this, new QueueSheet.Host() {
+            @Override
+            public void playFromQueue(Video video) {
+                onRelatedClicked(video);
+            }
+
+            @Override
+            public void onQueueChanged() {
+                refreshQueueSuggestions();
+            }
+
+            @Override
+            public void showQueueSheet(BottomSheetDialog dialog) {
+                showPlayerSheet(dialog);
+            }
+        });
+        mQueueSheet = new java.lang.ref.WeakReference<>(sheet);
+    }
+
+    /** Playlist moved on under an open queue sheet (autoplay, Next, a new open): it follows. */
+    private void refreshQueueSheet() {
+        QueueSheet sheet = mQueueSheet != null ? mQueueSheet.get() : null;
+        if (sheet != null) {
+            sheet.onPlaylistChanged();
+        }
+    }
+
+    /**
+     * The watch page's "Playback queue" list after an edit in the sheet: the videos after the
+     * playing one, in their new order - the same group SuggestionsController builds.
+     */
+    private void refreshQueueSuggestions() {
+        String title = getString(R.string.action_playback_queue);
+        int id = title.hashCode();
+        // null, not empty, when the playing video is the last one (Playlist.getAllAfterCurrent).
+        List<Video> next = Playlist.instance().getAllAfterCurrent();
+        if (next == null || next.isEmpty()) {
+            mSuggestionVideos.remove(id);
+            mSuggestionGroups.remove(id);
+            rebuildRelatedList();
+            return;
+        }
+        VideoGroup group = VideoGroup.from(new ArrayList<>(next));
+        group.setTitle(title);
+        group.setId(id);
+        group.setType(MediaGroup.TYPE_PLAYBACK_QUEUE);
+        group.setAction(VideoGroup.ACTION_REPLACE);
+        updateSuggestions(group);
+    }
+
     private void rebuildRelatedList() {
         mRelatedVideos.clear();
         mQueueVideos.clear();
@@ -8467,23 +8728,38 @@ public class MobilePlaybackActivity extends MobileActivity
      * only pushes the row a video was opened from when that row really is a playlist, so an
      * ordinary feed/search/subscriptions open delivers no section row. And here, the video must
      * be playing from a playlist a person chose - see {@link #isChosenPlaylist}.</p>
+     *
+     * <p>NEWTUBE(queue): failing that, the playback queue's own row. It is only what comes AFTER
+     * the playing video (SuggestionsController.appendPlaybackQueueIfNeeded), so the test above
+     * never picked it, and the card's edit button (shown only on that row) never appeared. It is
+     * a list a person built, so the card lists it.</p>
      */
     private Integer findQueueGroupId(Video current) {
         String currentId = current != null ? current.videoId : null;
 
-        if (currentId == null || !isChosenPlaylist(current)) {
+        if (currentId == null) {
             return null;
         }
 
-        for (Map.Entry<Integer, List<Video>> entry : mSuggestionVideos.entrySet()) {
-            List<Video> vids = entry.getValue();
-            if (vids == null) {
-                continue;
-            }
-            for (Video v : vids) {
-                if (v != null && currentId.equals(v.videoId)) {
-                    return entry.getKey();
+        if (isChosenPlaylist(current)) {
+            for (Map.Entry<Integer, List<Video>> entry : mSuggestionVideos.entrySet()) {
+                List<Video> vids = entry.getValue();
+                if (vids == null) {
+                    continue;
                 }
+                for (Video v : vids) {
+                    if (v != null && currentId.equals(v.videoId)) {
+                        return entry.getKey();
+                    }
+                }
+            }
+        }
+
+        for (Map.Entry<Integer, VideoGroup> entry : mSuggestionGroups.entrySet()) {
+            VideoGroup group = entry.getValue();
+            List<Video> vids = mSuggestionVideos.get(entry.getKey());
+            if (group != null && group.getType() == MediaGroup.TYPE_PLAYBACK_QUEUE && vids != null && !vids.isEmpty()) {
+                return entry.getKey();
             }
         }
 
@@ -8581,6 +8857,10 @@ public class MobilePlaybackActivity extends MobileActivity
         mQueueAdapter.setCurrentVideoId(currentId);
         mQueueAdapter.submitList(new ArrayList<>(mQueueVideos));
         mQueueCard.setVisibility(View.VISIBLE);
+        if (mQueueEdit != null) {
+            mQueueEdit.setVisibility(queueGroup != null && queueGroup.getType() == MediaGroup.TYPE_PLAYBACK_QUEUE
+                    ? View.VISIBLE : View.GONE);
+        }
         applyQueueExpanded();
     }
 
@@ -8995,6 +9275,9 @@ public class MobilePlaybackActivity extends MobileActivity
         if (item != null && mRelatedVideos.isEmpty()) {
             runOnUiThread(this::showRelatedSkeleton);
         }
+
+        // NEWTUBE(queue): Playlist's current video was set just before this (VideoLoaderController).
+        runOnUiThread(this::refreshQueueSheet);
 
         // CASTING: an active session claims every newly selected video (see maybeRouteVideoToCast).
         if (item != null && item.videoId != null) {

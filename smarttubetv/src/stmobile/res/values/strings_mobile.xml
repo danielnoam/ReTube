@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- NewTube branding: override SmartTube's app_name for the mobile flavor only -->
     <string name="app_name" translatable="false">NewTube</string>
     <string name="mobile_player_back">Back</string>
@@ -73,6 +73,19 @@
     <string name="mobile_watch_queue_position" translatable="false">%1$d / %2$d</string>
     <string name="mobile_watch_queue_fallback">queue</string>
     <string name="mobile_watch_queue_now_playing">Now playing</string>
+    <!-- NEWTUBE(queue): the queue sheet (QueueSheet). -->
+    <string name="mobile_queue_title">Queue</string>
+    <string name="mobile_queue_clear">Clear</string>
+    <string name="mobile_queue_edit">Edit queue</string>
+    <plurals name="mobile_queue_count">
+        <item quantity="one">%1$d video</item>
+        <item quantity="other">%1$d videos</item>
+    </plurals>
+    <string name="mobile_queue_move_up">Move up</string>
+    <string name="mobile_queue_move_down">Move down</string>
+    <string name="mobile_queue_moved">Moved to %1$d of %2$d</string>
+    <string name="mobile_queue_cleared">Queue cleared</string>
+    <string name="mobile_queue_empty">The queue is empty. Use Add to queue in a video\'s menu.</string>
     <string name="mobile_watch_description">Description</string>
     <string name="mobile_watch_count_placeholder" translatable="false">&#8211;</string>
     <string name="mobile_watch_share_subject">Watch this video</string>
@@ -261,10 +274,19 @@
     <string name="mobile_settings_experimental">Experimental</string>
     <!-- NEWTUBE(gestures): Settings > Player, the switches for the optional player swipes (#12). -->
     <string name="mobile_settings_gestures">Gestures</string>
-    <string name="mobile_settings_gesture_levels">Swipe for brightness and volume</string>
-    <string name="mobile_settings_gesture_levels_summary">Up and down on the left or right of the fullscreen video</string>
+    <string name="mobile_settings_gesture_brightness">Swipe for brightness</string>
+    <string name="mobile_settings_gesture_volume">Swipe for volume</string>
+    <string name="mobile_settings_gesture_brightness_summary">Up and down on the left of the fullscreen video, or either side with the volume swipe off</string>
+    <string name="mobile_settings_gesture_volume_summary">Up and down on the right of the fullscreen video, or either side with the brightness swipe off</string>
+    <!-- The old combined brightness/volume switch. Unused since each got its own; kept so the
+         Weblate translations of it don't trip ExtraTranslation. Delete once Weblate drops them. -->
+    <string name="mobile_settings_gesture_levels" tools:ignore="UnusedResources">Swipe for brightness and volume</string>
+    <string name="mobile_settings_gesture_levels_summary" tools:ignore="UnusedResources">Up and down on the left or right of the fullscreen video</string>
     <string name="mobile_settings_gesture_seek">Swipe to seek</string>
     <string name="mobile_settings_gesture_seek_summary">Sideways on the video</string>
+    <string name="mobile_settings_fullscreen">Fullscreen</string>
+    <string name="mobile_settings_clock">Clock in fullscreen</string>
+    <string name="mobile_settings_clock_summary">The time beside the title when you tap a fullscreen video</string>
     <!-- Default-locale twins of the values-es overrides below (lint ExtraTranslation). -->
     <string name="subscribed_to_channel">Subscribed</string>
     <string name="unsubscribed_from_channel">Unsubscribed</string>
@@ -407,6 +429,28 @@
     <string name="mobile_download_file_missing">The downloaded file is no longer on this device</string>
     <string name="mobile_download_pill_downloaded">Downloaded</string>
     <string name="mobile_downloads_empty">Videos you download appear here.\nUse Download in a video\'s menu or on the watch page.</string>
+    <string name="mobile_watch_later_empty">Videos you save for later appear here.\nUse Save to Watch later in a video\'s menu, or Save on the watch page.</string>
+    <!-- NEWTUBE(playlists): signed-out Playlists, and the offer to copy to an account (LocalCopyOffer). -->
+    <string name="mobile_playlists_empty">Playlists you make appear here.\nUse Save to playlist in a video\'s menu, then New playlist.</string>
+    <string name="mobile_copy_offer_title">Copy to your YouTube account?</string>
+    <string name="mobile_copy_offer_body">You saved %1$s on this phone while signed out. Copy to your account? The phone keeps its own copy either way.</string>
+    <string name="mobile_copy_offer_both">%1$s and %2$s</string>
+    <plurals name="mobile_copy_offer_playlists">
+        <item quantity="one">%1$d playlist</item>
+        <item quantity="other">%1$d playlists</item>
+    </plurals>
+    <plurals name="mobile_copy_offer_videos">
+        <item quantity="one">%1$d new video</item>
+        <item quantity="other">%1$d new videos</item>
+    </plurals>
+    <string name="mobile_copy_offer_copy">Copy</string>
+    <string name="mobile_copy_offer_keep">Keep on phone</string>
+    <string name="mobile_copy_working">Copying to your account…</string>
+    <string name="mobile_copy_done">Copied to your account</string>
+    <string name="mobile_copy_stopped">Copying stopped when the account changed. The rest is still on the phone.</string>
+    <!-- %1$s: "2 videos", "1 playlist", or both (mobile_copy_offer_both). -->
+    <string name="mobile_copy_done_partly">Copied, but YouTube didn\'t take %1$s</string>
+    <string name="mobile_copy_failed">Couldn\'t copy to your account. It\'s all still on the phone.</string>
     <string name="mobile_download_badge_queued">Queued</string>
     <string name="mobile_download_badge_downloading">Downloading</string>
     <string name="mobile_download_badge_failed">Failed</string>
@@ -472,4 +516,11 @@
     <!-- Experimental SABR playback (was strings_sabr.xml) -->
     <string name="sabr_vod_option">Prefer SABR even when links work (experimental; next VOD)</string>
     <string name="sabr_vod_stopped">Experimental SABR playback stopped. Tap play to retry, or disable SABR in Settings.</string>
+    <!-- NEWTUBE(sleep-timer): Player gear menu sleep timer (issues #47, #77). -->
+    <string name="mobile_player_sleep_timer">Sleep timer</string>
+    <string name="mobile_sleep_timer_end_of_video">End of video</string>
+    <string name="mobile_sleep_timer_set">Sleep timer set for %1$s</string>
+    <string name="mobile_sleep_timer_set_end_of_video">Sleep timer set for end of video</string>
+    <string name="mobile_sleep_timer_turned_off">Sleep timer turned off</string>
+    <string name="mobile_sleep_timer_paused">Sleep timer paused playback</string>
 </resources>
