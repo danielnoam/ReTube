@@ -474,4 +474,6 @@
     <string name="mobile_sleep_timer_set_end_of_video">Temporizador configurado para el fin del vídeo</string>
     <string name="mobile_sleep_timer_turned_off">Temporizador de apagado desactivado</string>
     <string name="mobile_sleep_timer_paused">El temporizador de apagado ha pausado la reproducción</string>
+    <string name="mobile_card_watch_later_already">Ya está en Ver más tarde. Vuelve a tocar para quitarlo.</string>
+    <string name="mobile_card_watch_later_error">No se pudo comprobar Ver más tarde. Inténtalo de nuevo.</string>
 </resources>

@@ -96,7 +96,7 @@ import java.util.List;
  * {@code BottomNavigationView} hard-caps at 5 items, but {@code BrowsePresenter} can
  * deliver 10+ sections (Home, Trending, Subscriptions, History, Music, Gaming, News,
  * Playlists, Settings, ...). The bar shows only the curated
- * {@link #PREFERRED_SECTION_IDS} plus the synthetic You tab - no backfill; every other
+ * {@link TabOrder} tabs plus the synthetic You tab - no backfill; every other
  * delivered section (and Settings, and the account entry) is reachable through the You
  * tab's list instead (YouTube's "You" model - there is no drawer).
  *
@@ -124,25 +124,6 @@ public class MobileBrowseActivity extends MobileActivity
     private static final int REQUEST_POST_NOTIFICATIONS = 1;
     /** Intent action (download notifications) that lands on the Downloads tab. */
     public static final String ACTION_OPEN_DOWNLOADS = "com.newtube.mobile.OPEN_DOWNLOADS";
-
-    /**
-     * Preferred bottom-nav sections, in priority order. Matched primarily by
-     * {@link BrowseSection#getId()} (stable {@link MediaGroup} TYPE_* constants in
-     * this codebase); the parallel {@link #PREFERRED_SECTION_TITLE_RES} array is a
-     * title-string fallback in case a section ever arrives with a non-standard id.
-     */
-    private static final int[] PREFERRED_SECTION_IDS = {
-            MediaGroup.TYPE_HOME,
-            MediaGroup.TYPE_SUBSCRIPTIONS,
-            MediaGroup.TYPE_HISTORY,
-            VideoDownloads.SECTION_ID,
-    };
-    private static final int[] PREFERRED_SECTION_TITLE_RES = {
-            R.string.header_home,
-            R.string.header_subscriptions,
-            R.string.header_history,
-            R.string.header_downloads,
-    };
 
     private BrowsePresenter mPresenter;
 
@@ -264,6 +245,7 @@ public class MobileBrowseActivity extends MobileActivity
         setupContentGrid();
         setupBottomNav();
         mWatchLaterTabOn = WatchLaterTab.isOn(this);
+        mTabOrder = TabOrder.signature(this);
         setupYouPanel();
         setupErrorAction();
         setupSearchButton();
@@ -1426,6 +1408,7 @@ public class MobileBrowseActivity extends MobileActivity
 
     private void syncChannelAvatars() {
         mAdapter.setChannelAvatars(showsChannelAvatars(mCurrentSectionId) ? this::onChannelAvatarClicked : null);
+        mAdapter.setWatchLaterButton(showsChannelAvatars(mCurrentSectionId));
     }
 
     /** The loading skeleton's avatar circles, where the cards will have avatars. */
@@ -1599,6 +1582,7 @@ public class MobileBrowseActivity extends MobileActivity
     private String mNavSignature;
     /** Settings > Tabs > Watch later, as the bar was last built; a change rebuilds it on resume. */
     private boolean mWatchLaterTabOn;
+    private String mTabOrder = "";
 
     // ---------------------------------------------------------------------------------
     // Downloads section
@@ -1826,7 +1810,7 @@ public class MobileBrowseActivity extends MobileActivity
     }
 
     /**
-     * The bottom nav shows ONLY the {@link #PREFERRED_SECTION_IDS} (in priority
+     * The bottom nav shows ONLY the {@link TabOrder} tabs (in the user's
      * order, when present and enabled) — no backfill from the other delivered
      * sections; everything else lives in the You panel. BrowsePresenter can deliver
      * many more sections, and the {@link BottomNavigationView} itself hard-caps at
@@ -1846,20 +1830,19 @@ public class MobileBrowseActivity extends MobileActivity
         int maxSections = MAX_NAV_ITEMS - 1;
         boolean watchLaterTab = WatchLaterTab.isOn(this);
 
-        for (int i = 0; i < PREFERRED_SECTION_IDS.length && chosen.size() < maxSections; i++) {
-            BrowseSection match = findPreferredSection(
-                    enabledSections, chosen, PREFERRED_SECTION_IDS[i], PREFERRED_SECTION_TITLE_RES[i]);
-
-            if (match != null) {
-                chosen.add(match);
+        // Settings > Tabs > Order; when the bar is full, the last tab moves to You.
+        for (int id : TabOrder.get(this)) {
+            if (chosen.size() >= maxSections) {
+                break;
             }
-
-            // Watch later sits right after Subscriptions; when the bar is full, the last tab moves to You.
-            if (watchLaterTab && PREFERRED_SECTION_IDS[i] == MediaGroup.TYPE_SUBSCRIPTIONS && chosen.size() < maxSections) {
-                BrowseSection watchLater = WatchLaterTab.pick(enabledSections);
-                if (watchLater != null) {
-                    chosen.add(watchLater);
-                }
+            BrowseSection match;
+            if (id == TabOrder.WATCH_LATER) {
+                match = watchLaterTab ? WatchLaterTab.pick(enabledSections) : null;
+            } else {
+                match = findPreferredSection(enabledSections, chosen, id, TabOrder.titleRes(id));
+            }
+            if (match != null && !chosen.contains(match)) {
+                chosen.add(match);
             }
         }
 
@@ -1897,8 +1880,9 @@ public class MobileBrowseActivity extends MobileActivity
         }
 
         updateAccountRow();
-        if (mWatchLaterTabOn != WatchLaterTab.isOn(this)) {
-            mWatchLaterTabOn = !mWatchLaterTabOn;
+        if (mWatchLaterTabOn != WatchLaterTab.isOn(this) || !mTabOrder.equals(TabOrder.signature(this))) {
+            mWatchLaterTabOn = WatchLaterTab.isOn(this);
+            mTabOrder = TabOrder.signature(this);
             rebuildBottomNav();
             rebuildYouRows();
         }
