@@ -58,6 +58,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
     private OnVideoClickListener mChannelClickListener;
     /** Held here; ChannelAvatars holds it weakly, so it goes away with this adapter. */
     private final ChannelAvatars.Listener mAvatarListener = this::onAvatarsChanged;
+    private boolean mWatchLaterButton;
 
     public VideoCardAdapter(OnVideoClickListener clickListener) {
         this(clickListener, null);
@@ -129,6 +130,30 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         }
     }
 
+    /** Home, Subscriptions and Search: a Watch later button on each video's thumbnail. */
+    public void setWatchLaterButton(boolean shown) {
+        if (mWatchLaterButton == shown) {
+            return;
+        }
+        mWatchLaterButton = shown;
+        if (getItemCount() > 0) {
+            notifyItemRangeChanged(0, getItemCount(), PAYLOAD_WATCH_LATER);
+        }
+    }
+
+    private void onWatchLaterChanged(Video video) {
+        java.util.List<Video> current = getCurrentList();
+        for (int i = 0; i < current.size(); i++) {
+            if (video.videoId != null && video.videoId.equals(current.get(i).videoId)) {
+                notifyItemChanged(i, PAYLOAD_WATCH_LATER);
+            }
+        }
+    }
+
+    private WatchLaterToggle.OnChanged watchLaterListener() {
+        return mWatchLaterButton ? this::onWatchLaterChanged : null;
+    }
+
     /** Full-span rows (channel results) for the grid's SpanSizeLookup in multi-column layouts. */
     public boolean isFullSpan(int position) {
         return position >= 0 && position < getItemCount() && getItemViewType(position) == VIEW_TYPE_CHANNEL;
@@ -151,6 +176,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         } else {
             ((VideoViewHolder) holder).bind(getItem(position), mLongClickListener);
             ((VideoViewHolder) holder).bindChannelAvatar(mChannelClickListener);
+            ((VideoViewHolder) holder).bindWatchLater(watchLaterListener());
         }
     }
 
@@ -195,6 +221,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
     private static final Object PAYLOAD_SYNC = new Object();
     /** NEWTUBE(feed-avatars): the card's channel avatar arrived or changed (ChannelAvatars). */
     private static final Object PAYLOAD_AVATAR = new Object();
+    private static final Object PAYLOAD_WATCH_LATER = new Object();
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position,
@@ -206,6 +233,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
             }
             // A sync can also bring the card its channel (Video.sync after playback).
             card.bindChannelAvatar(mChannelClickListener);
+            card.bindWatchLater(watchLaterListener());
         } else {
             super.onBindViewHolder(holder, position, payloads);
         }
@@ -224,6 +252,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         private final TextView mMeta;
         private final View mOverflow;
         private final ImageView mAvatar; // null on layouts without one
+        private final ImageView mWatchLater; // null on layouts without one
         private Video mVideo;
         private String mBoundThumbUrl;
         private String mBoundAvatarUrl;
@@ -239,6 +268,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
             mMeta = itemView.findViewById(R.id.video_meta);
             mOverflow = itemView.findViewById(R.id.video_overflow);
             mAvatar = itemView.findViewById(R.id.video_channel_avatar);
+            mWatchLater = itemView.findViewById(R.id.video_watch_later);
 
             itemView.setOnClickListener(v -> {
                 if (mVideo != null && clickListener != null) {
@@ -502,6 +532,30 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
                     .error(R.drawable.bg_card_avatar_placeholder)
                     .transition(com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions.withCrossFade(150))
                     .into(mAvatar);
+        }
+
+        void bindWatchLater(WatchLaterToggle.OnChanged onChanged) {
+            if (mWatchLater == null) {
+                return;
+            }
+            Video video = mVideo;
+            if (onChanged == null || video == null || !WatchLaterToggle.canToggle(video)) {
+                mWatchLater.setVisibility(View.GONE);
+                mWatchLater.setOnClickListener(null);
+                return;
+            }
+
+            Context context = itemView.getContext();
+            boolean saved = WatchLaterToggle.isSaved(context, video);
+            mWatchLater.setImageResource(saved ? R.drawable.ic_mobile_check : R.drawable.icon_watch_later);
+            mWatchLater.setContentDescription(context.getString(
+                    saved ? R.string.remove_video_from_watch_later : R.string.add_video_to_watch_later));
+            mWatchLater.setVisibility(View.VISIBLE);
+            mWatchLater.setOnClickListener(v -> {
+                if (mVideo != null) {
+                    WatchLaterToggle.toggle(context, mVideo, onChanged);
+                }
+            });
         }
 
         /**

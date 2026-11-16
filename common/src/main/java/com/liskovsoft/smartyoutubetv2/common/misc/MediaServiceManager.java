@@ -47,6 +47,8 @@ public class MediaServiceManager implements OnAccountChange {
     private final MediaItemService mItemService;
     private final ContentService mContentService;
     private final SignInService mSignInService;
+    /** NEWTUBE(watch-later): what this session knows about the account's Watch later, by video id. */
+    private final Map<String, Boolean> mWatchLaterMarks = new HashMap<>();
     private final NotificationsService mNotificationsService;
     private Disposable mMetadataAction;
     private Disposable mUploadsAction;
@@ -560,6 +562,10 @@ public class MediaServiceManager implements OnAccountChange {
             return;
         }
 
+        if (video.videoId != null) {
+            mWatchLaterMarks.put(video.videoId, isAdd);
+        }
+
         Disposable playlistsInfoAction = mItemService.getPlaylistsInfoObserve(video.videoId)
                 .subscribe(
                         videoPlaylistInfos -> {
@@ -578,6 +584,38 @@ public class MediaServiceManager implements OnAccountChange {
                             // Fallback to something on error
                             Log.e(TAG, "Get playlists error: %s", error.getMessage());
                         }
+                );
+    }
+
+    /** Whether the video is in the account's Watch later, when this session has seen it; else null. */
+    public Boolean getWatchLaterMark(String videoId) {
+        return videoId != null ? mWatchLaterMarks.get(videoId) : null;
+    }
+
+    public interface OnWatchLaterState {
+        void onWatchLaterState(boolean saved);
+    }
+
+    /** Asks the account whether the video is in its Watch later, and remembers the answer. */
+    public Disposable checkWatchLater(Video video, OnWatchLaterState onState, OnError onError) {
+        return mItemService.getPlaylistsInfoObserve(video.videoId)
+                .subscribe(
+                        infos -> {
+                            boolean saved = false;
+                            if (infos != null && !infos.isEmpty()) {
+                                PlaylistInfo watchLater = infos.get(0);
+                                for (PlaylistInfo info : infos) {
+                                    if ("WL".equals(info.getPlaylistId())) {
+                                        watchLater = info;
+                                        break;
+                                    }
+                                }
+                                saved = watchLater.isSelected();
+                            }
+                            mWatchLaterMarks.put(video.videoId, saved);
+                            onState.onWatchLaterState(saved);
+                        },
+                        onError::onError
                 );
     }
 
@@ -606,6 +644,7 @@ public class MediaServiceManager implements OnAccountChange {
 
     @Override
     public void onAccountChanged(Account account) {
+        mWatchLaterMarks.clear();
         for (AccountChangeListener listener : mAccountListeners) {
             listener.onAccountChanged(account);
         }

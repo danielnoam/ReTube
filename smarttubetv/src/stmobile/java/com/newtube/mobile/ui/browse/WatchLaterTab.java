@@ -26,7 +26,7 @@ public final class WatchLaterTab {
     private WatchLaterTab() {
     }
 
-    private static SharedPreferences prefs(Context context) {
+    static SharedPreferences prefs(Context context) {
         return context.getApplicationContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     }
 

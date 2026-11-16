@@ -219,10 +219,11 @@ final class AppPages {
 
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_tabs_bottom_bar)));
         addSectionToggles(context, rows, sections, bottomBar, true);
-        rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_tabs_watch_later),
-                context.getString(R.string.mobile_settings_tabs_watch_later_summary),
+        rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_tabs_watch_later), null,
                 () -> WatchLaterTab.isOn(context),
                 on -> WatchLaterTab.setOn(context, on)));
+        rows.add(SettingsRow.action(0, context.getString(R.string.mobile_settings_tabs_order),
+                () -> TabOrderDialog.summary(context), TabOrderDialog::show));
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_tabs_you)));
         addSectionToggles(context, rows, sections, you, true);
         rows.add(SettingsRow.header(context.getString(R.string.mobile_you_explore)));
