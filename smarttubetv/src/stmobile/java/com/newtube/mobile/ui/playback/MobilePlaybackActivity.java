@@ -6540,6 +6540,11 @@ public class MobilePlaybackActivity extends MobileActivity
                             }
                         }
                     }
+                    // NEWTUBE(#129): the synced rows are the same objects, mutated in place, so the
+                    // diff in submitList() never rebinds them - repaint them here, like search does.
+                    if (mRelatedAdapter != null) {
+                        mRelatedAdapter.refreshItems(incoming);
+                    }
                     break;
                 }
                 case VideoGroup.ACTION_APPEND:

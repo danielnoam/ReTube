@@ -85,6 +85,20 @@ public class RelatedVideoAdapter extends ListAdapter<Video, RelatedVideoAdapter.
         notifyDataSetChanged();
     }
 
+    /**
+     * Rebinds rows whose {@link Video} was changed in place - a DeArrow title/thumbnail or an
+     * original title landing after the list was shown (issue #129). {@link #DIFF_CALLBACK} treats
+     * the same instance as unchanged, so a resubmitted list never repaints them by itself.
+     */
+    public void refreshItems(java.util.List<Video> items) {
+        java.util.List<Video> current = getCurrentList();
+        for (int i = 0; i < current.size(); i++) {
+            if (items.contains(current.get(i))) {
+                notifyItemChanged(i);
+            }
+        }
+    }
+
     private static final DiffUtil.ItemCallback<Video> DIFF_CALLBACK = new DiffUtil.ItemCallback<Video>() {
         @Override
         public boolean areItemsTheSame(@NonNull Video oldItem, @NonNull Video newItem) {

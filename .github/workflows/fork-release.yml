@@ -1,0 +1,86 @@
+name: Fork release
+
+# Builds the phone app and publishes the APKs as a GitHub release of this fork.
+# Run it from the Actions tab (Run workflow) with a tag name, or push a tag starting with "dn-".
+#
+# Signing: with the SIGNING_KEY, KEY_STORE_PASSWORD, ALIAS and KEY_PASSWORD secrets set, every
+# release is signed with that one key and installs over the previous one. Without them the APK is
+# signed with the runner's throwaway debug key: it installs fine, but the next release can't update
+# it in place (Android refuses a different signature), so you'd have to uninstall first.
+# upstream's release.yml can't run here: it checks for Aleix's signing certificate.
+
+on:
+  push:
+    tags: ["dn-*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create, e.g. dn-1.17.1-1"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: 21.0.6113669   # smarttubetv/build.gradle ndkVersion, as in release.yml
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      HAS_SIGNING_KEY: ${{ secrets.SIGNING_KEY != '' }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Install the NDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" > /dev/null
+
+      - name: Configure signing
+        if: ${{ env.HAS_SIGNING_KEY == 'true' }}
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$SIGNING_KEY" | base64 --decode > "$RUNNER_TEMP/key.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/key.jks"
+            echo "storePassword=$KEY_STORE_PASSWORD"
+            echo "keyAlias=$ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Build
+        run: |
+          if [ "$HAS_SIGNING_KEY" = "true" ]; then
+            ./gradlew --no-daemon :smarttubetv:assembleStmobileRelease
+          else
+            ./gradlew --no-daemon :smarttubetv:assembleStmobileDebug
+          fi
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          type=$([ "$HAS_SIGNING_KEY" = "true" ] && echo release || echo debug)
+          mapfile -t apks < <(find smarttubetv/build/outputs/apk/stmobile/$type -name '*.apk')
+          [ ${#apks[@]} -gt 0 ] || { echo "No APKs built"; exit 1; }
+          if [ "$type" = "release" ]; then
+            signing="Signed with this fork's release key: installs over earlier releases."
+          else
+            signing="Debug build (app id io.github.danielnoam.newtube.debug), signed with a throwaway key: uninstall the previous release before installing this one."
+          fi
+          notes="Built from ${GITHUB_SHA::8}. $signing Pick the arm64-v8a APK for a modern phone, or universal if unsure."
+          gh release create "$TAG" "${apks[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "NewTube (fork) $TAG" --notes "$notes"
