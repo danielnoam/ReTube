@@ -45,6 +45,14 @@
          for them. Normal, auto-granted permission. -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Privacy: permissions merged in from the TV app that the phone never uses. Voice search
+         goes through RecognizerIntent (the recognizer app records, not us); PiP is native, not an
+         overlay; nothing uninstalls packages. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" tools:node="remove" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" tools:node="remove" />
+
     <!-- The in-app updater hands its APK straight to Android's installer (AppUpdates.systemInstaller):
          from Android 11 these queries make the installers visible, so apps that also open APK files
          do not turn the install into an "Open with" chooser. -->

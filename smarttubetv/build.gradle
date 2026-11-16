@@ -306,7 +306,9 @@ android {
             // Personal fork: own applicationId so it installs beside upstream NewTube
             // (io.github.aleixrodriala.arc) and never receives its updates.
             applicationId "io.github.danielnoam.newtube"
-            minSdk = 24 // media3 1.10.x floor is 23; 24 = project-wide minimum
+            // 25, not 24: on Android 7.0 SharedModules OkHttpCommons.configureToIgnoreCertificate
+            // installs a trust-all TrustManager, which would expose sign-in tokens to any MITM.
+            minSdk = 25
             targetSdk = project.ext.targetSdkVersion
             // NewTube versions independently of upstream SmartTube (defaultConfig carries the
             // fork-point 31.97/2387). versionCode starts at 10000 - above upstream's code so
