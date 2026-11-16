@@ -66,9 +66,10 @@
     <string name="mobile_settings_tabs_summary">Elige qué aparece en la barra inferior y en Tú</string>
     <string name="mobile_settings_tabs_bottom_bar">Barra inferior</string>
     <string name="mobile_settings_tabs_watch_later">Ver más tarde</string>
-    <string name="mobile_settings_tabs_order">Orden</string>
-    <string name="mobile_settings_tabs_order_title">Orden de la barra inferior</string>
-    <string name="mobile_settings_tabs_order_hint">Arrastra para cambiar el orden. La barra admite cuatro pestañas más Tú; las que pasen de cuatro van a Tú.</string>
+    <string name="mobile_settings_tabs_bar_note">Arrastra el asa de una pestaña para cambiar el orden de la barra. Admite cuatro pestañas más Tú; las que pasen de cuatro van a Tú.</string>
+    <string name="mobile_settings_card_buttons">Botones en las miniaturas</string>
+    <string name="mobile_settings_card_watch_later">Ver más tarde</string>
+    <string name="mobile_settings_card_watched">Visto</string>
     <string name="mobile_settings_tabs_you">Tú</string>
     <string name="mobile_settings_tabs_note">También puedes mantener pulsada una pestaña o una fila de Tú para moverla, renombrarla u ocultarla.</string>
     <string name="mobile_settings_hidden">Vídeos ocultos</string>

@@ -1408,7 +1408,7 @@ public class MobileBrowseActivity extends MobileActivity
 
     private void syncChannelAvatars() {
         mAdapter.setChannelAvatars(showsChannelAvatars(mCurrentSectionId) ? this::onChannelAvatarClicked : null);
-        mAdapter.setWatchLaterButton(showsChannelAvatars(mCurrentSectionId));
+        mAdapter.setCardButtons(showsChannelAvatars(mCurrentSectionId));
     }
 
     /** The loading skeleton's avatar circles, where the cards will have avatars. */
@@ -1878,6 +1878,7 @@ public class MobileBrowseActivity extends MobileActivity
         if (mPresenter != null) {
             mPresenter.onViewResumed();
         }
+        mAdapter.syncCardButtons(this);
 
         updateAccountRow();
         if (mWatchLaterTabOn != WatchLaterTab.isOn(this) || !mTabOrder.equals(TabOrder.signature(this))) {
