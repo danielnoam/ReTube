@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed-icon (API 33+) monochrome layer: the NewTube arch mark as a single
-     silhouette the launcher tints. Same geometry as the foreground. -->
+<!-- Themed-icon (API 33+) monochrome layer: the ReTube stacked cards as one silhouette the
+     launcher tints, the chevrons cut out of the front card. Same geometry as the foreground. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -8,9 +8,10 @@
     android:viewportHeight="108">
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="5"
-        android:strokeLineJoin="round"
-        android:strokeLineCap="round"
-        android:pathData="M32,76 L32,53 A22,22 0 0 1 76,53 L76,76 L63,76 L63,53 A9,9 0 0 0 45,53 L45,76 Z" />
+        android:fillAlpha="0.45"
+        android:pathData="M43,27 H77 A8,8 0 0 1 85,35 V57 A8,8 0 0 1 77,65 H73 V47 A8,8 0 0 0 65,39 H35 V35 A8,8 0 0 1 43,27 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M31,39 H65 A8,8 0 0 1 73,47 V69 A8,8 0 0 1 65,77 H31 A8,8 0 0 1 23,69 V47 A8,8 0 0 1 31,39 Z M43.99,58.00 L37.76,65.01 L37.17,66.02 L37.01,67.18 L37.30,68.31 L38.01,69.24 L39.02,69.83 L40.18,69.99 L41.31,69.70 L42.24,68.99 L50.24,59.99 L50.80,59.07 L51.00,58.00 L50.80,56.93 L50.24,56.01 L42.24,47.01 L41.31,46.30 L40.18,46.01 L39.02,46.17 L38.01,46.76 L37.30,47.69 L37.01,48.82 L37.17,49.98 L37.76,50.99 Z M54.99,58.00 L48.76,65.01 L48.17,66.02 L48.01,67.18 L48.30,68.31 L49.01,69.24 L50.02,69.83 L51.18,69.99 L52.31,69.70 L53.24,68.99 L61.24,59.99 L61.80,59.07 L62.00,58.00 L61.80,56.93 L61.24,56.01 L53.24,47.01 L52.31,46.30 L51.18,46.01 L50.02,46.17 L49.01,46.76 L48.30,47.69 L48.01,48.82 L48.17,49.98 L48.76,50.99 Z" />
 </vector>
