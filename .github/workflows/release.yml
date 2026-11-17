@@ -5,7 +5,7 @@ name: Build release
 # draft stays a manual step, and publishing is what starts the VirusTotal scan.
 #
 # The attestation lets anyone check that an APK was built here, from the tagged source:
-#   gh attestation verify NewTube_<version>_arm64-v8a.apk -R aleixrodriala/newtube
+#   gh attestation verify ReTube_<version>_arm64-v8a.apk -R aleixrodriala/newtube
 #
 # The signing key only exists in the `release` environment's secrets, which only `main` and
 # `v*` tags can use: RELEASE_KEYSTORE_BASE64 (the .jks file, base64), RELEASE_KEYSTORE_PASSWORD,
@@ -16,7 +16,7 @@ name: Build release
 # ON the tag: gh workflow run release.yml --ref v1.10.3. Run on main, it is a test build: the APKs
 # are attested and kept as a workflow artifact, and no release is touched.
 #
-# It also builds NewTube_<version>_fdroid_universal.apk, the twin of F-Droid's own build: F-Droid
+# It also builds ReTube_<version>_fdroid_universal.apk, the twin of F-Droid's own build: F-Droid
 # builds the same commit with -Pfdroid and publishes its build only if it matches this APK apart
 # from the signature, which it then copies, so F-Droid installs carry NewTube's signature
 # (reproducible builds). Its recipe (fdroiddata metadata/io.github.aleixrodriala.arc.yml) sets
@@ -101,7 +101,7 @@ jobs:
           set -euo pipefail
           ./gradlew --no-daemon --stacktrace :smarttubetv:assembleStmobileRelease -PprofgenPath="$PROFGEN"
           mkdir dist
-          cp smarttubetv/build/outputs/renamed_apks/stmobileRelease/NewTube_*.apk dist/
+          cp smarttubetv/build/outputs/renamed_apks/stmobileRelease/ReTube_*.apk dist/
 
       # From a clean build, as F-Droid's is, and without the J2V8 libs its recipe deletes.
       - name: Build the F-Droid APK
@@ -109,7 +109,7 @@ jobs:
           set -euo pipefail
           rm -rf SharedModules/j2v8/src/main/jniLibs MediaServiceCore/SharedModules/j2v8/src/main/jniLibs
           ./gradlew --no-daemon --stacktrace clean :smarttubetv:assembleStmobileRelease -Pfdroid -PprofgenPath="$PROFGEN"
-          cp smarttubetv/build/outputs/renamed_apks/stmobileRelease/NewTube_*_fdroid_universal.apk dist/
+          cp smarttubetv/build/outputs/renamed_apks/stmobileRelease/ReTube_*_fdroid_universal.apk dist/
 
       - name: Remove the signing key
         if: always()
@@ -123,7 +123,7 @@ jobs:
             version="${TAG#v}"
             for apk in dist/*.apk; do
               case "$(basename "$apk")" in
-                "NewTube_${version}_"*) ;;
+                "ReTube_${version}_"*) ;;
                 *) echo "::error::$(basename "$apk") doesn't match tag $TAG. Bump versionName first."; exit 1 ;;
               esac
             done

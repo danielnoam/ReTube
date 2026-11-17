@@ -12,11 +12,11 @@ android {
         // Requiring API 34+ prevents that fallback on a phone with an existing account.
         minSdk = 34
         targetSdk = project.ext.targetSdkVersion
-        testApplicationId = 'io.github.danielnoam.newtube.benchmark'
+        testApplicationId = 'io.github.danielnoam.retube.benchmark'
         testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
         missingDimensionStrategy 'default', 'stmobile'
         testInstrumentationRunnerArguments['targetPackage'] = rootProject.file('keystore.properties').exists()
-                ? 'io.github.danielnoam.newtube' : 'io.github.danielnoam.newtube.debug'
+                ? 'io.github.danielnoam.retube' : 'io.github.danielnoam.retube.debug'
     }
 
     compileOptions {

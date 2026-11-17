@@ -28,7 +28,8 @@ Settings
   Account                       name / email, or "Not signed in"; opens the accounts sheet
   App
     General                     Theme · Pure black · Language · Location · Start screen · Interface size ·
-                                Search by voice right away · Use 24-hour time
+                                Search by voice right away · Use 24-hour time ·
+                                Downloads: Video folder · Audio folder · Use the default folders
     Tabs and feeds              Tabs › · Hidden videos › · Video menu › · Thumbnails ·
                                 Original titles · Order of Channels in You
     History and privacy         Watch history · Clear watch history · Don't keep search history ·

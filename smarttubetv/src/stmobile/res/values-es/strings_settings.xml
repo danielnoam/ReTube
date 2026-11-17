@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Shared -->
-    <string name="mobile_settings_restart_needed">Reinicia NewTube para aplicar este cambio</string>
+    <string name="mobile_settings_restart_needed">Reinicia ReTube para aplicar este cambio</string>
     <string name="mobile_settings_restart">Reiniciar</string>
     <string name="mobile_settings_off">Desactivado</string>
     <string name="mobile_settings_more">Más</string>
@@ -60,6 +60,12 @@
     <string name="mobile_settings_voice_search_summary">Al abrir Buscar empieza a escuchar</string>
     <string name="mobile_settings_24_hour">Usar formato de 24 horas</string>
     <string name="mobile_settings_24_hour_summary">Para la hora de inicio de estrenos y directos</string>
+    <string name="mobile_settings_downloads_header">Descargas</string>
+    <string name="mobile_settings_download_folder_video">Carpeta de vídeos</string>
+    <string name="mobile_settings_download_folder_audio">Carpeta de audio</string>
+    <string name="mobile_settings_download_folder_default">%1$s (predeterminada)</string>
+    <string name="mobile_settings_download_folder_internal">Almacenamiento interno</string>
+    <string name="mobile_settings_download_folder_reset">Usar las carpetas predeterminadas</string>
 
     <!-- Tabs and feeds -->
     <string name="mobile_settings_tabs">Pestañas</string>
@@ -130,9 +136,9 @@
     <string name="mobile_settings_watch_history_auto">Seguir mi ajuste de YouTube</string>
     <string name="mobile_settings_watch_history_auto_desc">Se guarda si tu cuenta de YouTube guarda el historial</string>
     <string name="mobile_settings_watch_history_on">Guardar siempre</string>
-    <string name="mobile_settings_watch_history_on_desc">Vuelve a activar tu historial de YouTube cada vez que abres NewTube</string>
+    <string name="mobile_settings_watch_history_on_desc">Vuelve a activar tu historial de YouTube cada vez que abres ReTube</string>
     <string name="mobile_settings_watch_history_off">No guardar</string>
-    <string name="mobile_settings_watch_history_off_desc">NewTube deja de contarle a YouTube lo que ves</string>
+    <string name="mobile_settings_watch_history_off_desc">ReTube deja de contarle a YouTube lo que ves</string>
     <string name="mobile_settings_clear_watch_history">Borrar historial de reproducciones</string>
     <string name="mobile_settings_clear_watch_history_summary">Borra de tu historial de YouTube los vídeos que has visto</string>
     <string name="mobile_settings_clear_watch_history_confirm">¿Borrar el historial de reproducciones?</string>
@@ -142,7 +148,7 @@
     <string name="mobile_settings_clear_search_history">Borrar historial de búsqueda</string>
     <string name="mobile_settings_clear_search_history_summary">Borra las búsquedas guardadas en este teléfono</string>
     <string name="mobile_settings_clear_search_history_confirm">¿Borrar el historial de búsqueda?</string>
-    <string name="mobile_settings_clear_search_history_body">Se borran las búsquedas que NewTube guardó en este teléfono. No se puede deshacer.</string>
+    <string name="mobile_settings_clear_search_history_body">Se borran las búsquedas que ReTube guardó en este teléfono. No se puede deshacer.</string>
 
     <!-- Backup -->
     <string name="mobile_settings_backup_now">Hacer copia ahora</string>
@@ -152,7 +158,7 @@
     <string name="mobile_settings_restore_summary">Desde una copia en %1$s</string>
     <string name="mobile_settings_auto_backup">Copia automática</string>
     <string name="mobile_settings_auto_backup_off">Nunca</string>
-    <string name="mobile_settings_backup_note">Una copia guarda todo lo que has configurado en NewTube. Lo que es de tu cuenta de YouTube, como suscripciones e historial, se queda allí.</string>
+    <string name="mobile_settings_backup_note">Una copia guarda todo lo que has configurado en ReTube. Lo que es de tu cuenta de YouTube, como suscripciones e historial, se queda allí.</string>
     <!-- NEWTUBE(import): Ajustes > Copia de seguridad > Importar suscripciones. -->
     <string name="mobile_settings_import_header">Importar</string>
     <string name="mobile_settings_import">Importar suscripciones</string>
@@ -190,7 +196,7 @@
     <string name="mobile_settings_remember_speed_video">Por vídeo</string>
     <string name="mobile_settings_remember_speed_all">La misma para todos los vídeos</string>
     <string name="mobile_settings_remember_speed_none">No recordar</string>
-    <string name="mobile_settings_remember_speed_none_desc">Vuelve a 1x cada vez que se inicia NewTube</string>
+    <string name="mobile_settings_remember_speed_none_desc">Vuelve a 1x cada vez que se inicia ReTube</string>
     <string name="mobile_settings_speed_list">Velocidades en Más velocidades</string>
     <string name="mobile_settings_speed_list_basic">Una lista corta</string>
     <string name="mobile_settings_speed_list_fine">Pasos finos</string>
@@ -227,7 +233,7 @@
     <string name="mobile_settings_loudness">Igualar el volumen</string>
     <string name="mobile_settings_loudness_summary">Baja los vídeos muy altos al nivel normal de YouTube</string>
     <string name="mobile_settings_player_volume">Volumen del reproductor</string>
-    <string name="mobile_settings_quality_data_saver_note">Con el Ahorro de datos de Android activado, NewTube carga menos por adelantado con datos móviles.</string>
+    <string name="mobile_settings_quality_data_saver_note">Con el Ahorro de datos de Android activado, ReTube carga menos por adelantado con datos móviles.</string>
 
     <!-- Captions -->
     <string name="mobile_settings_caption_style">Estilo</string>
@@ -263,7 +269,7 @@
     <string name="mobile_settings_dearrow_note">DeArrow recibe los ID de los vídeos que ves en las listas.</string>
 
     <!-- Advanced -->
-    <string name="mobile_settings_advanced_note">La mayoría nunca los necesita. Cambian cómo NewTube reproduce y se conecta.</string>
+    <string name="mobile_settings_advanced_note">La mayoría nunca los necesita. Cambian cómo ReTube reproduce y se conecta.</string>
     <string name="mobile_settings_streaming">Streaming</string>
     <string name="mobile_settings_video_format">Formato de vídeo</string>
     <string name="mobile_settings_buffer">Búfer</string>
@@ -295,7 +301,7 @@
     <string name="mobile_settings_chapter_popup_summary">Muestra el nombre de cada capítulo al empezar. Tócalo para pasar al siguiente</string>
     <string name="mobile_settings_network">Red</string>
     <string name="mobile_settings_proxy">Proxy web</string>
-    <string name="mobile_settings_proxy_summary">Envía el tráfico de NewTube a través de un proxy HTTP o SOCKS</string>
+    <string name="mobile_settings_proxy_summary">Envía el tráfico de ReTube a través de un proxy HTTP o SOCKS</string>
     <string name="mobile_settings_dns">Cómo encontrar los servidores de YouTube</string>
     <string name="mobile_settings_dns_ipv4">IPv4 primero</string>
     <string name="mobile_settings_dns_ipv4_desc">La opción predeterminada. Arregla redes con IPv6 roto</string>
