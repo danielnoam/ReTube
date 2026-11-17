@@ -46,7 +46,7 @@ public final class AboutShareRows {
         Intent send = new Intent(Intent.ACTION_SEND)
                 .setType("text/plain")
                 .putExtra(Intent.EXTRA_TEXT, context.getString(R.string.mobile_about_share_text,
-                        context.getString(R.string.mobile_about_site_url)));
+                        context.getString(R.string.mobile_about_repo_url)));
 
         Intent chooser = Intent.createChooser(send, context.getString(R.string.mobile_about_share));
         chooser.putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, ownTextTargets(context, send));
