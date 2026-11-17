@@ -1,6 +1,6 @@
 name: Add the F-Droid APK to a release
 
-# Builds NewTube_<version>_fdroid_universal.apk for a release that was published without one
+# Builds ReTube_<version>_fdroid_universal.apk for a release that was published without one
 # (1.15.0 and older) and adds it to that release. release.yml builds it for every new release; see
 # the note there for what F-Droid does with it. Same build, signing and checks as release.yml.
 #
@@ -100,7 +100,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir dist
-          cp "smarttubetv/build/outputs/renamed_apks/stmobileRelease/NewTube_${TAG#v}_fdroid_universal.apk" dist/
+          cp "smarttubetv/build/outputs/renamed_apks/stmobileRelease/ReTube_${TAG#v}_fdroid_universal.apk" dist/
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/[0-9]* | sort -V | tail -1)/apksigner"
           out="$("$apksigner" verify --print-certs dist/*.apk 2>&1)" || { echo "$out"; echo "::error::apksigner rejected the APK."; exit 1; }
           certs="$(printf '%s\n' "$out" | grep -oE 'certificate SHA-256 digest: [0-9a-f]{64}' | awk '{print $4}' | sort -u)"

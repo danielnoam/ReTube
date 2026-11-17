@@ -12,4 +12,4 @@
     android:lineSpacingMultiplier="1.1"
     android:textColor="@color/mobile_color_on_surface_secondary"
     android:textSize="13sp"
-    tools:text="These only change what NewTube shows you; nothing is removed from YouTube." />
+    tools:text="These only change what ReTube shows you; nothing is removed from YouTube." />

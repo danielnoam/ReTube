@@ -83,4 +83,4 @@ jobs:
           fi
           notes="Built from ${GITHUB_SHA::8}. $signing Pick the arm64-v8a APK for a modern phone, or universal if unsure."
           gh release create "$TAG" "${apks[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "NewTube (fork) $TAG" --notes "$notes"
+            --title "ReTube $TAG" --notes "$notes"
