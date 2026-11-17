@@ -53,7 +53,8 @@ public final class MiniPlayerListInset implements ViewTreeObserver.OnGlobalLayou
     }
 
     private int requiredExtra() {
-        if (mCard.getVisibility() != View.VISIBLE || mCard.getHeight() <= 0) {
+        if (mCard.getVisibility() != View.VISIBLE || mCard.getHeight() <= 0
+                || MiniCardCorner.isTop(mCard.getContext())) { // NEWTUBE(mini-corner): not over the end
             return 0;
         }
         int margin = 0;

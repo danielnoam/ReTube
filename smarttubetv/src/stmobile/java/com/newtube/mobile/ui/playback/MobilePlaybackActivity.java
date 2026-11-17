@@ -5831,6 +5831,17 @@ public class MobilePlaybackActivity extends MobileActivity
         float cardH = video.height() * scale; // 16:9 video -> ~the card's 102dp
         float targetX = mContainer.getWidth() - margin - cardW;
         float targetY = mContainer.getHeight() - bottomNav - margin - cardH;
+        // NEWTUBE(mini-corner): the card may have been dragged to another corner (MiniCardCorner).
+        boolean rtl = mContainer.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        if (MiniCardCorner.isLeft(this, rtl)) {
+            targetX = margin;
+        }
+        int cardTop = host != null && MiniCardCorner.isTop(this) ? host.getMiniCardTopOnScreenPx() : -1;
+        if (cardTop >= 0) {
+            int[] container = new int[2];
+            mContainer.getLocationOnScreen(container);
+            targetY = cardTop - (container[1] - mContainer.getTranslationY());
+        }
 
         mMorphScaleX = scale;
         mMorphScaleY = scale;

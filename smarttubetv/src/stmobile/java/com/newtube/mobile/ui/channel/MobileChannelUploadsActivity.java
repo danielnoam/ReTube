@@ -112,7 +112,7 @@ public class MobileChannelUploadsActivity extends MobileActivity
         registerBackHandler(this::handleBack);
 
         bindViews();
-        mMiniPlayer = new MobileMiniPlayerController(this);
+        mMiniPlayer = new MobileMiniPlayerController(this, findViewById(R.id.mobile_channel_uploads_toolbar));
         setupGrid();
         setupSwipeRefresh();
 

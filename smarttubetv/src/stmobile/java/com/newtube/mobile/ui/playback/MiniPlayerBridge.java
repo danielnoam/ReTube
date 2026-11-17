@@ -55,6 +55,17 @@ public final class MiniPlayerBridge {
          * THIS host's card instead of always assuming Home's geometry.
          */
         int getMiniCardBottomOffsetPx();
+
+        /**
+         * NEWTUBE(mini-corner): screen y of the card's top edge in a top corner (MiniCardCorner),
+         * or -1 when unknown.
+         */
+        default int getMiniCardTopOnScreenPx() {
+            return this instanceof android.app.Activity
+                    ? MiniCardCorner.topOnScreen(((android.app.Activity) this).findViewById(
+                            com.liskovsoft.smartyoutubetv2.tv.R.id.mobile_mini_player))
+                    : -1;
+        }
     }
 
     /**
