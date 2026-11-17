@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A settings row: optional leading icon (top-level pages), title, optional summary (what it
-     does, or the current value of a choice), optional trailing switch. -->
+     does, or the current value of a choice), optional trailing switch, optional drag handle. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -60,6 +60,18 @@
         android:clickable="false"
         android:focusable="false"
         android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/settings_row_drag"
+        android:layout_width="40dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="-8dp"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:scaleType="center"
+        android:src="@drawable/ic_queue_drag"
         android:visibility="gone" />
 
 </LinearLayout>

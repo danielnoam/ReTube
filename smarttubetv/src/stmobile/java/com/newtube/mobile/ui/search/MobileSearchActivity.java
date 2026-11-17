@@ -245,7 +245,7 @@ public class MobileSearchActivity extends MobileActivity
     private void setupGrid() {
         mLayoutManager = new GridLayoutManager(this, computeSpanCount());
         mAdapter = new VideoCardAdapter(this::onVideoClicked, this::onVideoLongClicked);
-        mAdapter.setWatchLaterButton(true);
+        mAdapter.setCardButtons(true);
 
         // Channel results render as full-width rows even when landscape/tablet uses 2+ columns.
         mLayoutManager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
@@ -584,6 +584,7 @@ public class MobileSearchActivity extends MobileActivity
         if (mPresenter != null) {
             mPresenter.onViewResumed();
         }
+        mAdapter.syncCardButtons(this);
         // Last-resumed host wins: a video opened from these results minimizes back onto them.
         MiniPlayerBridge.registerMiniHost(this);
         if (mMiniPlayer != null) {

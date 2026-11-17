@@ -525,4 +525,7 @@
     <string name="mobile_sleep_timer_paused">Sleep timer paused playback</string>
     <string name="mobile_card_watch_later_already">Already in Watch later. Tap again to remove it.</string>
     <string name="mobile_card_watch_later_error">Couldn\'t check Watch later. Try again.</string>
+    <string name="mobile_card_mark_unwatched">Mark as unwatched</string>
+    <string name="mobile_card_marked_watched">Marked as watched</string>
+    <string name="mobile_card_marked_unwatched">Marked as unwatched</string>
 </resources>
