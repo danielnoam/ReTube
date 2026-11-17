@@ -305,6 +305,7 @@ public class MobileBrowseActivity extends MobileActivity
         mMiniPlayPause = findViewById(R.id.mobile_mini_play_pause);
         mMiniProgress = findViewById(R.id.mobile_mini_progress);
         setupMiniPlayerBar();
+        com.newtube.mobile.ui.playback.MiniCardCorner.attach(mMiniPlayerBar, findViewById(R.id.mobile_title_bar));
         // NEWTUBE(mini-inset): the last card can scroll clear of the docked mini-player.
         com.newtube.mobile.ui.playback.MiniPlayerListInset.attach(mMiniPlayerBar, mContentGrid);
     }
@@ -495,6 +496,8 @@ public class MobileBrowseActivity extends MobileActivity
         mMiniPlayerBar.setScaleX(1f);
         mMiniPlayerBar.setScaleY(1f);
         mMiniPlayerBar.setTranslationX(0f);
+        mMiniPlayerBar.setTranslationY(0f);
+        com.newtube.mobile.ui.playback.MiniCardCorner.apply(mMiniPlayerBar); // maybe moved elsewhere
         mMiniPlayerBar.setVisibility(View.VISIBLE);
         updateMiniPlayPauseIcon(player);
 
@@ -687,6 +690,7 @@ public class MobileBrowseActivity extends MobileActivity
         mMiniPlayerBar.setScaleX(1f);
         mMiniPlayerBar.setScaleY(1f);
         mMiniPlayerBar.setTranslationX(0f);
+        mMiniPlayerBar.setTranslationY(0f);
         mMiniButtonsFadePending = false;
         setMiniButtonsAlpha(1f);
     }
@@ -1408,7 +1412,7 @@ public class MobileBrowseActivity extends MobileActivity
 
     private void syncChannelAvatars() {
         mAdapter.setChannelAvatars(showsChannelAvatars(mCurrentSectionId) ? this::onChannelAvatarClicked : null);
-        mAdapter.setWatchLaterButton(showsChannelAvatars(mCurrentSectionId));
+        mAdapter.setCardButtons(showsChannelAvatars(mCurrentSectionId));
     }
 
     /** The loading skeleton's avatar circles, where the cards will have avatars. */
@@ -1878,6 +1882,7 @@ public class MobileBrowseActivity extends MobileActivity
         if (mPresenter != null) {
             mPresenter.onViewResumed();
         }
+        mAdapter.syncCardButtons(this);
 
         updateAccountRow();
         if (mWatchLaterTabOn != WatchLaterTab.isOn(this) || !mTabOrder.equals(TabOrder.signature(this))) {

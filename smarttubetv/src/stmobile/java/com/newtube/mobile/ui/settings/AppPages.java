@@ -24,6 +24,8 @@ import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
 import com.newtube.mobile.CardMenuMigration;
 import com.newtube.mobile.downloads.DownloadFolders;
+import com.newtube.mobile.ui.browse.CardButtons;
+import com.newtube.mobile.ui.browse.TabOrder;
 import com.newtube.mobile.ui.browse.WatchLaterTab;
 import com.newtube.mobile.ui.common.MobileSnackbar;
 import com.newtube.mobile.ui.common.ThemeMode;
@@ -194,6 +196,13 @@ final class AppPages {
                 .option(context.getString(R.string.mobile_settings_thumbnails_end), ClickbaitRemover.THUMB_QUALITY_END)
                 .bind(mainUIData::getThumbQuality, mainUIData::setThumbQuality));
 
+        rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_card_buttons)));
+        rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_card_watch_later), null,
+                () -> CardButtons.isWatchLaterOn(context), on -> CardButtons.setWatchLaterOn(context, on)));
+        rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_card_watched), null,
+                () -> CardButtons.isWatchedOn(context), on -> CardButtons.setWatchedOn(context, on)));
+        rows.add(SettingsRow.divider());
+
         rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_original_titles),
                 context.getString(R.string.mobile_settings_original_titles_summary),
                 // NEWTUBE(#45): no longer turns DeArrow titles off - both can be on; DeArrow's
@@ -237,12 +246,17 @@ final class AppPages {
                 MediaGroup.TYPE_PLAYBACK_QUEUE, MediaGroup.TYPE_BLOCKED_CHANNELS};
 
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_tabs_bottom_bar)));
-        addSectionToggles(context, rows, sections, bottomBar, true);
-        rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_tabs_watch_later), null,
-                () -> WatchLaterTab.isOn(context),
-                on -> WatchLaterTab.setOn(context, on)));
-        rows.add(SettingsRow.action(0, context.getString(R.string.mobile_settings_tabs_order),
-                () -> TabOrderDialog.summary(context), TabOrderDialog::show));
+        java.util.function.Consumer<List<Integer>> onReorder = order -> TabOrder.set(context, order);
+        for (int id : TabOrder.get(context)) {
+            SettingsRow row = id == TabOrder.WATCH_LATER
+                    ? SettingsRow.toggle(context.getString(R.string.mobile_settings_tabs_watch_later), null,
+                            () -> WatchLaterTab.isOn(context), on -> WatchLaterTab.setOn(context, on))
+                    : sectionToggle(context, sections, id);
+            if (row != null) {
+                rows.add(row.reorderable(id, onReorder));
+            }
+        }
+        rows.add(SettingsRow.note(context.getString(R.string.mobile_settings_tabs_bar_note)));
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_tabs_you)));
         addSectionToggles(context, rows, sections, you, true);
         rows.add(SettingsRow.header(context.getString(R.string.mobile_you_explore)));
@@ -269,25 +283,32 @@ final class AppPages {
 
     private static void addSectionToggles(Context context, List<SettingsRow> rows, Map<Integer, Integer> sections,
                                           int[] order, boolean keepOrder) {
-        SidebarService sidebar = SidebarService.instance(context);
         for (int sectionId : order) {
-            if (sectionId == MediaGroup.TYPE_SETTINGS || sectionId == MediaGroup.TYPE_SHORTS) {
-                continue;
+            SettingsRow row = sectionToggle(context, sections, sectionId);
+            if (row != null) {
+                rows.add(row);
             }
-            Integer titleRes = null;
-            for (Map.Entry<Integer, Integer> entry : sections.entrySet()) {
-                if (entry.getValue() == sectionId) {
-                    titleRes = entry.getKey();
-                    break;
-                }
-            }
-            if (titleRes == null) {
-                continue;
-            }
-            rows.add(SettingsRow.toggle(context.getString(sectionTitle(titleRes)), null,
-                    () -> sidebar.isSectionPinned(sectionId),
-                    on -> BrowsePresenter.instance(context).enableSection(sectionId, on)));
         }
+    }
+
+    private static SettingsRow sectionToggle(Context context, Map<Integer, Integer> sections, int sectionId) {
+        if (sectionId == MediaGroup.TYPE_SETTINGS || sectionId == MediaGroup.TYPE_SHORTS) {
+            return null;
+        }
+        Integer titleRes = null;
+        for (Map.Entry<Integer, Integer> entry : sections.entrySet()) {
+            if (entry.getValue() == sectionId) {
+                titleRes = entry.getKey();
+                break;
+            }
+        }
+        if (titleRes == null) {
+            return null;
+        }
+        SidebarService sidebar = SidebarService.instance(context);
+        return SettingsRow.toggle(context.getString(sectionTitle(titleRes)), null,
+                () -> sidebar.isSectionPinned(sectionId),
+                on -> BrowsePresenter.instance(context).enableSection(sectionId, on));
     }
 
     /** "Upcoming on Home" / "3 kinds of videos" / "Nothing hidden". */

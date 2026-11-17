@@ -74,9 +74,10 @@
     <string name="mobile_settings_tabs_summary">Choose what shows in the bottom bar and in You</string>
     <string name="mobile_settings_tabs_bottom_bar">Bottom bar</string>
     <string name="mobile_settings_tabs_watch_later">Watch later</string>
-    <string name="mobile_settings_tabs_order">Order</string>
-    <string name="mobile_settings_tabs_order_title">Bottom bar order</string>
-    <string name="mobile_settings_tabs_order_hint">Drag to change the order. The bar holds four tabs plus You; any after the fourth move to You.</string>
+    <string name="mobile_settings_tabs_bar_note">Drag a tab by its handle to change the bar\'s order. The bar holds four tabs plus You; any after the fourth move to You.</string>
+    <string name="mobile_settings_card_buttons">Thumbnail buttons</string>
+    <string name="mobile_settings_card_watch_later">Watch later</string>
+    <string name="mobile_settings_card_watched">Watched</string>
     <string name="mobile_settings_tabs_you">You</string>
     <string name="mobile_settings_tabs_note">You can also hold a tab or a row in You to move, rename or hide it.</string>
     <string name="mobile_settings_hidden">Hidden videos</string>

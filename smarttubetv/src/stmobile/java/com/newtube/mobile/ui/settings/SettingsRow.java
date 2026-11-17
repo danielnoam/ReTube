@@ -83,6 +83,9 @@ public final class SettingsRow {
     boolean restart;
     /** Red title: an action that deletes something. */
     boolean destructive;
+    /** Set: the row has a drag handle and moves among the rows sharing this same callback. */
+    @Nullable Consumer<List<Integer>> reorder;
+    int reorderId;
 
     private SettingsRow(int kind) {
         this.kind = kind;
@@ -188,6 +191,16 @@ public final class SettingsRow {
 
     public SettingsRow enabledWhen(@NonNull BooleanSupplier enabled) {
         this.enabled = enabled;
+        return this;
+    }
+
+    /**
+     * A drag handle right of the row: it moves among the rows given the same {@code onReorder},
+     * which gets their ids in the new order when the drag ends.
+     */
+    public SettingsRow reorderable(int id, @NonNull Consumer<List<Integer>> onReorder) {
+        this.reorderId = id;
+        this.reorder = onReorder;
         return this;
     }
 

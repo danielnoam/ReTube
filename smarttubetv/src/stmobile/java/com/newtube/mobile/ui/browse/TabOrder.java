@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The order of the bottom bar's tabs (Settings > Tabs > Order). {@link #WATCH_LATER} stands for the
+ * The order of the bottom bar's tabs (Settings > Tabs, dragged by the handles of the Bottom bar rows). {@link #WATCH_LATER} stands for the
  * Watch later tab whichever section backs it (the phone's own or the account's pinned "WL").
  */
 public final class TabOrder {
@@ -51,7 +51,7 @@ public final class TabOrder {
     }
 
     /** The tabs that are on, in order. */
-    public static List<Integer> enabled(Context context) {
+    static List<Integer> enabled(Context context) {
         List<Integer> enabled = new ArrayList<>();
         for (int id : get(context)) {
             if (isOn(context, id)) {
@@ -61,16 +61,13 @@ public final class TabOrder {
         return enabled;
     }
 
-    /** Puts the tabs that are on in this order; the ones that are off keep theirs, after them. */
-    public static void setEnabled(Context context, List<Integer> enabledOrder) {
+    public static void set(Context context, List<Integer> order) {
         StringBuilder value = new StringBuilder();
-        for (int id : enabledOrder) {
-            append(value, id);
-        }
-        for (int id : get(context)) {
-            if (!enabledOrder.contains(id)) {
-                append(value, id);
+        for (int id : order) {
+            if (value.length() > 0) {
+                value.append(',');
             }
+            value.append(id);
         }
         WatchLaterTab.prefs(context).edit().putString(KEY_ORDER, value.toString()).apply();
     }
@@ -107,12 +104,5 @@ public final class TabOrder {
             }
         }
         return false;
-    }
-
-    private static void append(StringBuilder value, int id) {
-        if (value.length() > 0) {
-            value.append(',');
-        }
-        value.append(id);
     }
 }

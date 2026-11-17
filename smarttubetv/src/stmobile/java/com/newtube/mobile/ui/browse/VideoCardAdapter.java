@@ -58,7 +58,8 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
     private OnVideoClickListener mChannelClickListener;
     /** Held here; ChannelAvatars holds it weakly, so it goes away with this adapter. */
     private final ChannelAvatars.Listener mAvatarListener = this::onAvatarsChanged;
-    private boolean mWatchLaterButton;
+    private boolean mCardButtons;
+    private String mCardButtonsShown = "";
 
     public VideoCardAdapter(OnVideoClickListener clickListener) {
         this(clickListener, null);
@@ -130,28 +131,45 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         }
     }
 
-    /** Home, Subscriptions and Search: a Watch later button on each video's thumbnail. */
-    public void setWatchLaterButton(boolean shown) {
-        if (mWatchLaterButton == shown) {
+    /**
+     * Home, Subscriptions and Search: the {@link CardButtons} on each video's thumbnail, those that
+     * are switched on in Settings.
+     */
+    public void setCardButtons(boolean shown) {
+        if (mCardButtons == shown) {
             return;
         }
-        mWatchLaterButton = shown;
-        if (getItemCount() > 0) {
-            notifyItemRangeChanged(0, getItemCount(), PAYLOAD_WATCH_LATER);
+        mCardButtons = shown;
+        notifyCardButtons();
+    }
+
+    /** After Settings: shows or hides the buttons that were switched on or off there. */
+    public void syncCardButtons(Context context) {
+        if (mCardButtons && !mCardButtonsShown.equals(CardButtons.signature(context))) {
+            notifyCardButtons();
         }
     }
 
-    private void onWatchLaterChanged(Video video) {
+    private void notifyCardButtons() {
+        if (getItemCount() > 0) {
+            notifyItemRangeChanged(0, getItemCount(), PAYLOAD_BUTTONS);
+        }
+    }
+
+    private void onCardButtonChanged(Video video) {
         java.util.List<Video> current = getCurrentList();
         for (int i = 0; i < current.size(); i++) {
             if (video.videoId != null && video.videoId.equals(current.get(i).videoId)) {
-                notifyItemChanged(i, PAYLOAD_WATCH_LATER);
+                notifyItemChanged(i, PAYLOAD_SYNC);
             }
         }
     }
 
-    private WatchLaterToggle.OnChanged watchLaterListener() {
-        return mWatchLaterButton ? this::onWatchLaterChanged : null;
+    private void bindCardButtons(VideoViewHolder card) {
+        if (mCardButtons) {
+            mCardButtonsShown = CardButtons.signature(card.itemView.getContext());
+        }
+        card.bindCardButtons(mCardButtons ? this::onCardButtonChanged : null);
     }
 
     /** Full-span rows (channel results) for the grid's SpanSizeLookup in multi-column layouts. */
@@ -176,7 +194,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         } else {
             ((VideoViewHolder) holder).bind(getItem(position), mLongClickListener);
             ((VideoViewHolder) holder).bindChannelAvatar(mChannelClickListener);
-            ((VideoViewHolder) holder).bindWatchLater(watchLaterListener());
+            bindCardButtons((VideoViewHolder) holder);
         }
     }
 
@@ -221,7 +239,8 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
     private static final Object PAYLOAD_SYNC = new Object();
     /** NEWTUBE(feed-avatars): the card's channel avatar arrived or changed (ChannelAvatars). */
     private static final Object PAYLOAD_AVATAR = new Object();
-    private static final Object PAYLOAD_WATCH_LATER = new Object();
+    /** Thumbnail buttons switched on or off. */
+    private static final Object PAYLOAD_BUTTONS = new Object();
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position,
@@ -233,7 +252,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
             }
             // A sync can also bring the card its channel (Video.sync after playback).
             card.bindChannelAvatar(mChannelClickListener);
-            card.bindWatchLater(watchLaterListener());
+            bindCardButtons(card);
         } else {
             super.onBindViewHolder(holder, position, payloads);
         }
@@ -253,6 +272,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         private final View mOverflow;
         private final ImageView mAvatar; // null on layouts without one
         private final ImageView mWatchLater; // null on layouts without one
+        private final ImageView mWatched; // null on layouts without one
         private Video mVideo;
         private String mBoundThumbUrl;
         private String mBoundAvatarUrl;
@@ -269,6 +289,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
             mOverflow = itemView.findViewById(R.id.video_overflow);
             mAvatar = itemView.findViewById(R.id.video_channel_avatar);
             mWatchLater = itemView.findViewById(R.id.video_watch_later);
+            mWatched = itemView.findViewById(R.id.video_watched);
 
             itemView.setOnClickListener(v -> {
                 if (mVideo != null && clickListener != null) {
@@ -534,28 +555,46 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
                     .into(mAvatar);
         }
 
-        void bindWatchLater(WatchLaterToggle.OnChanged onChanged) {
-            if (mWatchLater == null) {
+        void bindCardButtons(CardButtons.OnChanged onChanged) {
+            if (mWatchLater == null || mWatched == null) {
                 return;
             }
+            Context context = itemView.getContext();
             Video video = mVideo;
-            if (onChanged == null || video == null || !WatchLaterToggle.canToggle(video)) {
+
+            if (onChanged != null && video != null && CardButtons.isWatchLaterOn(context)
+                    && CardButtons.canSaveForLater(video)) {
+                boolean saved = CardButtons.isSaved(context, video);
+                mWatchLater.setImageResource(saved ? R.drawable.ic_mobile_check : R.drawable.icon_watch_later);
+                mWatchLater.setContentDescription(context.getString(
+                        saved ? R.string.remove_video_from_watch_later : R.string.add_video_to_watch_later));
+                mWatchLater.setVisibility(View.VISIBLE);
+                mWatchLater.setOnClickListener(v -> {
+                    if (mVideo != null) {
+                        CardButtons.toggleWatchLater(context, mVideo, onChanged);
+                    }
+                });
+            } else {
                 mWatchLater.setVisibility(View.GONE);
                 mWatchLater.setOnClickListener(null);
-                return;
             }
 
-            Context context = itemView.getContext();
-            boolean saved = WatchLaterToggle.isSaved(context, video);
-            mWatchLater.setImageResource(saved ? R.drawable.ic_mobile_check : R.drawable.icon_watch_later);
-            mWatchLater.setContentDescription(context.getString(
-                    saved ? R.string.remove_video_from_watch_later : R.string.add_video_to_watch_later));
-            mWatchLater.setVisibility(View.VISIBLE);
-            mWatchLater.setOnClickListener(v -> {
-                if (mVideo != null) {
-                    WatchLaterToggle.toggle(context, mVideo, onChanged);
-                }
-            });
+            if (onChanged != null && video != null && CardButtons.isWatchedOn(context)
+                    && CardButtons.canMarkWatched(video)) {
+                boolean watched = CardButtons.isWatched(video);
+                mWatched.setBackgroundResource(watched ? R.drawable.bg_card_watched_on : R.drawable.bg_card_watch_later);
+                mWatched.setContentDescription(context.getString(
+                        watched ? R.string.mobile_card_mark_unwatched : R.string.mark_as_watched));
+                mWatched.setVisibility(View.VISIBLE);
+                mWatched.setOnClickListener(v -> {
+                    if (mVideo != null) {
+                        CardButtons.toggleWatched(context, mVideo, onChanged);
+                    }
+                });
+            } else {
+                mWatched.setVisibility(View.GONE);
+                mWatched.setOnClickListener(null);
+            }
         }
 
         /**

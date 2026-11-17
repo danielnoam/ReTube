@@ -147,6 +147,7 @@ public final class SettingsPageFragment extends Fragment implements SettingsAdap
         mAdapter = new SettingsAdapter(this);
         mList.setLayoutManager(new LinearLayoutManager(requireContext()));
         mList.setAdapter(mAdapter);
+        mAdapter.attachDragging(mList);
         // Rows are rebound in place when a value changes: no cross-fade on every tap.
         mList.setItemAnimator(null);
         // The rows go in before the first layout: the list's saved position (coming back from a
