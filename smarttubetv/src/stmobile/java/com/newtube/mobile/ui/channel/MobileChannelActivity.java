@@ -121,7 +121,8 @@ public class MobileChannelActivity extends MobileActivity
         registerBackHandler(this::handleBack);
 
         bindViews();
-        mMiniPlayer = new MobileMiniPlayerController(this);
+        mMiniPlayer = new MobileMiniPlayerController(this,
+                findViewById(R.id.mobile_channel_toolbar), findViewById(R.id.mobile_channel_tabs));
         mAnimateMiniFromPlayer = MiniPlayerBridge.completePendingNavigation();
         if (mAnimateMiniFromPlayer) {
             // The live card supplies the spatial transition from the watch page; suppress the

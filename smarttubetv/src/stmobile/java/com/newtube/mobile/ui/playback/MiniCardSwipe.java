@@ -26,6 +26,11 @@ import com.newtube.mobile.ui.common.MagneticDrag;
  * commit point - where it catches up with the finger; back under 56 dp it sticks again, with the
  * same click. The spring back has SystemUI's small bounce.</p>
  *
+ * <p>NEWTUBE(mini-corner): any other drag - up, down, or sideways away from the screen edge the
+ * card is docked on - moves the card instead. It follows the finger and, let go, springs to the
+ * corner it was heading for (MiniCardCorner), which every screen then shows it in. Sideways
+ * toward that edge still swipes it away.</p>
+ *
  * <p>Shared by Home's card (MobileBrowseActivity) and the Search/Channel one
  * (MobileMiniPlayerController); each host does its own closing in {@link Callback}.</p>
  */
@@ -44,6 +49,10 @@ public final class MiniCardSwipe implements View.OnTouchListener {
     private static final float SNAP_BACK_DAMPING = 0.6f;
     private static final long FLY_MIN_MS = 110;
     private static final long FLY_MAX_MS = 240;
+    /** How far ahead (s) a released card's speed is projected to pick its corner. */
+    private static final float MOVE_PROJECTION_S = 0.15f;
+    private static final float MOVE_STIFFNESS = 600f;
+    private static final float MOVE_DAMPING = 0.8f;
 
     private final View mCard;
     private final Callback mCallback;
@@ -55,6 +64,17 @@ public final class MiniCardSwipe implements View.OnTouchListener {
     private float mDownRawX;
     private float mDownRawY;
     private boolean mDragging;
+    /** NEWTUBE(mini-corner): the touch is moving the card to another corner. */
+    private boolean mMoving;
+    private float mMoveStartX;
+    private float mMoveStartY;
+    @Nullable
+    private SpringAnimation mMoveX;
+    @Nullable
+    private SpringAnimation mMoveY;
+    /** The corner a released card is springing to; committed once it lands. */
+    private int mMoveTarget = NO_CORNER;
+    private static final int NO_CORNER = -1;
     /** The touch stopped being a swipe (a second finger): consume it to the end. */
     private boolean mIgnoring;
     @Nullable
@@ -78,13 +98,18 @@ public final class MiniCardSwipe implements View.OnTouchListener {
      * under the host's own fade.
      */
     public void stop() {
-        if (mDragging) {
+        if (mDragging || mMoving) {
             mDragging = false;
+            mMoving = false;
             mIgnoring = true;
             recycleVelocity();
         }
         mMagnet.finish();
         cancelSnapBack();
+        if (mMoveTarget != NO_CORNER) {
+            cancelMove();
+            commitMove(); // it lands where it was going, under the host's own animation
+        }
     }
 
     private MiniCardSwipe(View card, Callback callback) {
@@ -106,6 +131,7 @@ public final class MiniCardSwipe implements View.OnTouchListener {
                 mDownRawX = event.getRawX();
                 mDownRawY = event.getRawY();
                 mDragging = false;
+                mMoving = false;
                 mIgnoring = false;
                 recycleVelocity();
                 mVelocity = VelocityTracker.obtain();
@@ -118,12 +144,25 @@ public final class MiniCardSwipe implements View.OnTouchListener {
                 trackVelocity(event);
                 float dx = event.getRawX() - mDownRawX;
                 float dy = event.getRawY() - mDownRawY;
+                if (mMoving) {
+                    mCard.setTranslationX(mMoveStartX + dx);
+                    mCard.setTranslationY(mMoveStartY + dy);
+                    return true;
+                }
                 if (!mDragging) {
-                    if (Math.abs(dx) <= mTouchSlop || Math.abs(dx) <= Math.abs(dy) * 1.5f
-                            || !mCallback.canSwipe()) {
+                    if (Math.max(Math.abs(dx), Math.abs(dy)) <= mTouchSlop || !mCallback.canSwipe()) {
                         return false;
                     }
-                    mDragging = true;
+                    MiniCardCorner corner = MiniCardCorner.of(mCard);
+                    boolean sideways = Math.abs(dx) > Math.abs(dy) * 1.5f;
+                    boolean outward = corner == null || (corner.isLeft() ? dx < 0 : dx > 0);
+                    if (sideways && outward) {
+                        mDragging = true;
+                    } else if (corner != null) {
+                        mMoving = true;
+                    } else {
+                        return false;
+                    }
                     // Drop the press and its pending click: this touch is a swipe now.
                     MotionEvent cancel = MotionEvent.obtain(event);
                     cancel.setAction(MotionEvent.ACTION_CANCEL);
@@ -135,6 +174,14 @@ public final class MiniCardSwipe implements View.OnTouchListener {
                     }
                     mCard.animate().cancel();
                     cancelSnapBack();
+                    if (mMoving) {
+                        cancelMove(); // grabbed while landing: carry on from where it is
+                        mMoveTarget = NO_CORNER;
+                        mMoveStartX = mCard.getTranslationX() - dx;
+                        mMoveStartY = mCard.getTranslationY() - dy;
+                        mCard.setAlpha(1f);
+                        return true;
+                    }
                     mMagnet.start();
                 }
                 mMagnet.move(dx);
@@ -143,6 +190,20 @@ public final class MiniCardSwipe implements View.OnTouchListener {
             case MotionEvent.ACTION_UP: {
                 if (mIgnoring) {
                     mIgnoring = false;
+                    return true;
+                }
+                if (mMoving) {
+                    trackVelocity(event);
+                    float velocityX = 0f;
+                    float velocityY = 0f;
+                    if (mVelocity != null) {
+                        mVelocity.computeCurrentVelocity(1000);
+                        velocityX = mVelocity.getXVelocity();
+                        velocityY = mVelocity.getYVelocity();
+                    }
+                    recycleVelocity();
+                    mMoving = false;
+                    settleInCorner(velocityX, velocityY);
                     return true;
                 }
                 if (!mDragging) {
@@ -172,6 +233,11 @@ public final class MiniCardSwipe implements View.OnTouchListener {
                     recycleVelocity();
                     mMagnet.finish();
                     springBack(0f);
+                } else if (mMoving) {
+                    mMoving = false;
+                    mIgnoring = true;
+                    recycleVelocity();
+                    settleInCorner(0f, 0f);
                 }
                 return mIgnoring;
             case MotionEvent.ACTION_CANCEL:
@@ -183,9 +249,14 @@ public final class MiniCardSwipe implements View.OnTouchListener {
                     springBack(0f);
                     return true;
                 }
+                if (mMoving) {
+                    mMoving = false;
+                    settleInCorner(0f, 0f);
+                    return true;
+                }
                 return false;
             default:
-                return mDragging;
+                return mDragging || mMoving;
         }
     }
 
@@ -224,6 +295,70 @@ public final class MiniCardSwipe implements View.OnTouchListener {
         mSnapBack.cancel();
         mSnapBack.setStartVelocity(velocityX);
         mSnapBack.animateToFinalPosition(0f);
+    }
+
+    /**
+     * NEWTUBE(mini-corner): spring to the corner the card was heading for - its position plus a
+     * short projection of its speed, so a flick carries it across - and dock it there.
+     */
+    private void settleInCorner(float velocityX, float velocityY) {
+        MiniCardCorner corner = MiniCardCorner.of(mCard);
+        if (corner == null) {
+            return;
+        }
+        android.graphics.Rect area = corner.area();
+        int margin = corner.margin();
+        int width = mCard.getWidth();
+        int height = mCard.getHeight();
+        float centerX = mCard.getLeft() + mCard.getTranslationX() + width / 2f + velocityX * MOVE_PROJECTION_S;
+        float centerY = mCard.getTop() + mCard.getTranslationY() + height / 2f + velocityY * MOVE_PROJECTION_S;
+        boolean left = centerX < area.centerX();
+        boolean top = centerY < area.centerY();
+        float targetX = (left ? area.left + margin : area.right - margin - width) - mCard.getLeft();
+        float targetY = (top ? area.top + margin : area.bottom - margin - height) - mCard.getTop();
+        int target = MiniCardCorner.of(top, left);
+        if (target != MiniCardCorner.get(mCard.getContext())) {
+            Haptics.click(mCard);
+        }
+        mMoveTarget = target;
+        if (mMoveX == null) {
+            mMoveX = moveSpring(DynamicAnimation.TRANSLATION_X);
+            mMoveY = moveSpring(DynamicAnimation.TRANSLATION_Y);
+        }
+        mMoveX.setStartVelocity(velocityX);
+        mMoveY.setStartVelocity(velocityY);
+        mMoveX.animateToFinalPosition(targetX);
+        mMoveY.animateToFinalPosition(targetY);
+    }
+
+    private SpringAnimation moveSpring(DynamicAnimation.ViewProperty property) {
+        SpringAnimation spring = new SpringAnimation(mCard, property, 0f);
+        spring.getSpring().setStiffness(MOVE_STIFFNESS).setDampingRatio(MOVE_DAMPING);
+        spring.addEndListener((animation, canceled, value, velocity) -> {
+            if (!canceled && mMoveTarget != NO_CORNER && !mMoveX.isRunning() && !mMoveY.isRunning()) {
+                commitMove();
+            }
+        });
+        return spring;
+    }
+
+    private void cancelMove() {
+        if (mMoveX != null) {
+            mMoveX.cancel();
+            mMoveY.cancel();
+        }
+    }
+
+    /** Landed: the corner becomes the card's layout and its translation goes back to 0. */
+    private void commitMove() {
+        int target = mMoveTarget;
+        mMoveTarget = NO_CORNER;
+        MiniCardCorner corner = MiniCardCorner.of(mCard);
+        if (corner != null && target != NO_CORNER) {
+            corner.set(target);
+        }
+        mCard.setTranslationX(0f);
+        mCard.setTranslationY(0f);
     }
 
     private void cancelSnapBack() {

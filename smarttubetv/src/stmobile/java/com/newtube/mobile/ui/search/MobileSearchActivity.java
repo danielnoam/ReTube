@@ -144,7 +144,7 @@ public class MobileSearchActivity extends MobileActivity
         registerBackHandler(this::handleBack);
 
         bindViews();
-        mMiniPlayer = new MobileMiniPlayerController(this);
+        mMiniPlayer = new MobileMiniPlayerController(this, findViewById(R.id.mobile_search_toolbar));
         setupSuggestions();
         setupGrid();
         setupSearchInput();

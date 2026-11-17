@@ -68,7 +68,8 @@ public final class MobileMiniPlayerController {
     private boolean mButtonsFadePending;
     private final MiniPlayerBridge.CardFold mCardFold = this::foldForPlayer;
 
-    public MobileMiniPlayerController(Activity activity) {
+    /** {@code topBars}: what the card stays below in a top corner (MiniCardCorner). */
+    public MobileMiniPlayerController(Activity activity, View... topBars) {
         mActivity = activity;
         mBar = activity.findViewById(R.id.mobile_mini_player);
         mFrame = activity.findViewById(R.id.mobile_mini_player_frame);
@@ -108,6 +109,7 @@ public final class MobileMiniPlayerController {
                 close(toTranslationX, durationMs);
             }
         }, mFrame, mBar);
+        MiniCardCorner.attach(mBar, topBars);
     }
 
     /**
@@ -210,6 +212,8 @@ public final class MobileMiniPlayerController {
         mBar.setScaleX(1f);
         mBar.setScaleY(1f);
         mBar.setTranslationX(0f); // a card swiped away (MiniCardSwipe)
+        mBar.setTranslationY(0f);
+        MiniCardCorner.apply(mBar); // it may have been moved on another screen
 
         mEntryAnimating = animateFromPlayer;
         mTextureHasFrame = false;
