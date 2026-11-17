@@ -314,8 +314,12 @@ android {
             // fork-point 31.97/2387). versionCode starts at 10000 - above upstream's code so
             // existing test installs upgrade in place - and encodes the version:
             // 1.0.0 -> 10000, 1.0.1 -> 10001, 1.1.0 -> 10100, 2.0.0 -> 20000.
-            versionCode 11701
-            versionName "1.17.1"
+            // ReTube: a fork release (fork-release.yml, tag dn-<version>-<N>) builds with
+            // -PforkRevision=N, so each one gets a higher versionCode than the last and the in-app
+            // updater offers it. Keep the "<code> * 100" shape: tools/fork_update_manifest.py reads it.
+            def forkRevision = (project.findProperty('forkRevision') ?: '0').toString().toInteger()
+            versionCode 11701 * 100 + forkRevision
+            versionName forkRevision > 0 ? "1.17.1-${forkRevision}" : "1.17.1"
         }
     }
 }

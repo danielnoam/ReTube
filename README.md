@@ -39,8 +39,9 @@ For everything ReTube inherits (features, how sign-in works, the FAQ), see
 APKs are on this repository's [Releases](https://github.com/danielnoam/newtube/releases) page.
 Pick the `arm64-v8a` APK for a modern phone, or `universal` if unsure.
 
-Until the fork has its own release key, releases are debug builds signed with a throwaway key,
-so uninstall the previous release before installing a new one.
+Releases signed with the fork's key install over each other, and ReTube offers them as updates
+itself (Settings > About). Releases marked as debug builds are signed with a throwaway key:
+uninstall the previous one before installing them.
 
 ## Building
 
