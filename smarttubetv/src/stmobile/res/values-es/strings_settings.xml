@@ -60,6 +60,12 @@
     <string name="mobile_settings_voice_search_summary">Al abrir Buscar empieza a escuchar</string>
     <string name="mobile_settings_24_hour">Usar formato de 24 horas</string>
     <string name="mobile_settings_24_hour_summary">Para la hora de inicio de estrenos y directos</string>
+    <string name="mobile_settings_downloads_header">Descargas</string>
+    <string name="mobile_settings_download_folder_video">Carpeta de vídeos</string>
+    <string name="mobile_settings_download_folder_audio">Carpeta de audio</string>
+    <string name="mobile_settings_download_folder_default">%1$s (predeterminada)</string>
+    <string name="mobile_settings_download_folder_internal">Almacenamiento interno</string>
+    <string name="mobile_settings_download_folder_reset">Usar las carpetas predeterminadas</string>
 
     <!-- Tabs and feeds -->
     <string name="mobile_settings_tabs">Pestañas</string>

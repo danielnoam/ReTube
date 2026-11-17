@@ -23,6 +23,7 @@ import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
 import com.newtube.mobile.CardMenuMigration;
+import com.newtube.mobile.downloads.DownloadFolders;
 import com.newtube.mobile.ui.browse.WatchLaterTab;
 import com.newtube.mobile.ui.common.MobileSnackbar;
 import com.newtube.mobile.ui.common.ThemeMode;
@@ -84,7 +85,25 @@ final class AppPages {
                 context.getString(R.string.mobile_settings_24_hour_summary),
                 generalData::is24HourLocaleEnabled, generalData::set24HourLocaleEnabled).needsRestart());
 
+        if (DownloadFolders.isSupported()) {
+            downloadFolders(context, rows);
+        }
+
         return new SettingsPages.Page(context.getString(R.string.mobile_settings_general), rows);
+    }
+
+    /** Where downloads go: Movies/ReTube and Music/ReTube unless a folder is chosen (DownloadFolders). */
+    private static void downloadFolders(Context context, List<SettingsRow> rows) {
+        rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_downloads_header)));
+        rows.add(SettingsRow.action(0, context.getString(R.string.mobile_settings_download_folder_video),
+                () -> DownloadFolders.label(context, false), page -> page.pickDownloadFolder(false)));
+        rows.add(SettingsRow.action(0, context.getString(R.string.mobile_settings_download_folder_audio),
+                () -> DownloadFolders.label(context, true), page -> page.pickDownloadFolder(true)));
+        rows.add(SettingsRow.action(context.getString(R.string.mobile_settings_download_folder_reset), null,
+                page -> {
+                    DownloadFolders.reset(context);
+                    page.rebuild();
+                }).enabledWhen(() -> DownloadFolders.hasCustom(context)));
     }
 
     /** The tab NewTube opens on: the enabled sections, then pinned channels and playlists. */

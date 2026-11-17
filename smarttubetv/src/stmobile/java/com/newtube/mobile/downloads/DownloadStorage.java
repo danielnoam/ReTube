@@ -8,7 +8,9 @@ import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -28,9 +30,13 @@ import java.io.IOException;
  *
  * <p>Android 7-9: {@code Android/media/<package>/ReTube} - the one public location an app can
  * write without a runtime permission there; a media scan makes it visible.
+ *
+ * <p>Android 8+: a folder chosen in Settings ({@link DownloadFolders}) replaces either default,
+ * through the Storage Access Framework.
  */
 final class DownloadStorage {
-    private static final String FOLDER = "ReTube";
+    private static final String TAG = DownloadStorage.class.getSimpleName();
+    static final String FOLDER = "ReTube";
 
     /** An output the muxer can write to, plus what is needed to finish or abandon it. */
     static final class Target {
@@ -53,6 +59,14 @@ final class DownloadStorage {
 
     Target create(String fileName, boolean audioOnly) throws IOException {
         String mime = audioOnly ? "audio/mp4" : "video/mp4";
+
+        Uri tree = DownloadFolders.get(mContext, audioOnly);
+        if (tree != null) {
+            Target target = createInTree(tree, fileName, mime);
+            if (target != null) {
+                return target;
+            }
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContentResolver resolver = mContext.getContentResolver();
@@ -86,6 +100,28 @@ final class DownloadStorage {
         return new Target(Uri.fromFile(file), file, null);
     }
 
+    /** A file in the folder chosen in Settings, or null when it can't be written (falls back to the default). */
+    @Nullable
+    private Target createInTree(Uri tree, String fileName, String mime) {
+        ContentResolver resolver = mContext.getContentResolver();
+        try {
+            Uri dir = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree));
+            Uri uri = DocumentsContract.createDocument(resolver, dir, mime, fileName);
+            if (uri == null) {
+                return null;
+            }
+            ParcelFileDescriptor pfd = resolver.openFileDescriptor(uri, "rw");
+            if (pfd == null) {
+                DocumentsContract.deleteDocument(resolver, uri);
+                return null;
+            }
+            return new Target(uri, null, pfd);
+        } catch (IOException | RuntimeException e) {
+            Log.w(TAG, "Chosen download folder not writable, using the default: " + e.getMessage());
+            return null;
+        }
+    }
+
     MediaMuxer openMuxer(Target target) throws IOException {
         if (target.pfd != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -103,7 +139,7 @@ final class DownloadStorage {
     void commit(Target target) throws IOException {
         if (target.pfd != null) {
             target.pfd.close();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && MediaStore.AUTHORITY.equals(target.uri.getAuthority())) {
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.MediaColumns.IS_PENDING, 0);
                 mContext.getContentResolver().update(target.uri, values, null, null);
@@ -130,6 +166,9 @@ final class DownloadStorage {
         }
         Uri uri = Uri.parse(uriString);
         try {
+            if (DocumentsContract.isDocumentUri(mContext, uri)) {
+                return DocumentsContract.deleteDocument(mContext.getContentResolver(), uri);
+            }
             if (ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
                 return mContext.getContentResolver().delete(uri, null, null) > 0;
             }
@@ -139,7 +178,7 @@ final class DownloadStorage {
                 MediaScannerConnection.scanFile(mContext, new String[]{file.getAbsolutePath()}, null, null);
                 return deleted;
             }
-        } catch (SecurityException | IllegalArgumentException e) {
+        } catch (IOException | SecurityException | IllegalArgumentException | UnsupportedOperationException e) {
             return false;
         }
         return false;

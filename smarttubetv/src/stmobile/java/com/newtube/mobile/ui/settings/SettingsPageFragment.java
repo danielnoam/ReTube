@@ -8,6 +8,7 @@ import android.animation.PropertyValuesHolder;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.newtube.mobile.downloads.DownloadFolders;
 import com.newtube.mobile.ui.common.MobileSnackbar;
 
 import java.util.List;
@@ -43,6 +45,7 @@ public final class SettingsPageFragment extends Fragment implements SettingsAdap
     private static final String ARG_PAGE = "page";
     /** A search result opened this page: scroll to this row and make it glow once. */
     private static final String ARG_HIGHLIGHT = "highlight";
+    private static final String STATE_FOLDER_PICK_AUDIO = "folder_pick_audio";
     /** After the page's slide-in, so the glow is seen. */
     private static final long HIGHLIGHT_DELAY_MS = 350;
 
@@ -57,6 +60,8 @@ public final class SettingsPageFragment extends Fragment implements SettingsAdap
      * system picker needs no storage permission, unlike the TV's file browser it replaces.
      */
     private ActivityResultLauncher<String[]> mImportPicker;
+    private ActivityResultLauncher<Uri> mFolderPicker;
+    private boolean mFolderPickAudio;
 
     public static SettingsPageFragment newInstance(@NonNull String pageId) {
         return newInstance(pageId, null);
@@ -90,6 +95,31 @@ public final class SettingsPageFragment extends Fragment implements SettingsAdap
                 SubscriptionImport.importFrom(requireContext(), uri);
             }
         });
+        if (savedInstanceState != null) {
+            mFolderPickAudio = savedInstanceState.getBoolean(STATE_FOLDER_PICK_AUDIO);
+        }
+        mFolderPicker = registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), uri -> {
+            if (uri != null) {
+                DownloadFolders.set(requireContext(), mFolderPickAudio, uri);
+                rebuild();
+            }
+        });
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(STATE_FOLDER_PICK_AUDIO, mFolderPickAudio);
+    }
+
+    /** Picks the folder video or audio downloads go to, starting at the current one. */
+    public void pickDownloadFolder(boolean audio) {
+        mFolderPickAudio = audio;
+        try {
+            mFolderPicker.launch(DownloadFolders.get(requireContext(), audio));
+        } catch (ActivityNotFoundException e) {
+            MobileSnackbar.show(requireContext(), R.string.mobile_settings_import_no_picker);
+        }
     }
 
     /**
