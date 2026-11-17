@@ -23,7 +23,7 @@ which is built on [SmartTube](https://github.com/yuliskov/SmartTube) by [@yulisk
 
 ## What this fork changes
 
-- Its own package name (`io.github.danielnoam.newtube`), so it installs next to NewTube,
+- Its own package name (`io.github.danielnoam.retube`), so it installs next to NewTube,
   SmartTube or the YouTube app.
 - Privacy fixes and Android 7.1 (API 25) as the minimum version.
 - A selection of upstream fixes and pull requests merged early.

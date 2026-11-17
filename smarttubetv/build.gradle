@@ -305,7 +305,7 @@ android {
         stmobile {
             // Personal fork: own applicationId so it installs beside upstream NewTube
             // (io.github.aleixrodriala.arc) and never receives its updates.
-            applicationId "io.github.danielnoam.newtube"
+            applicationId "io.github.danielnoam.retube"
             // 25, not 24: on Android 7.0 SharedModules OkHttpCommons.configureToIgnoreCertificate
             // installs a trust-all TrustManager, which would expose sign-in tokens to any MITM.
             minSdk = 25

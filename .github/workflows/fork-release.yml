@@ -79,7 +79,7 @@ jobs:
           if [ "$type" = "release" ]; then
             signing="Signed with this fork's release key: installs over earlier releases."
           else
-            signing="Debug build (app id io.github.danielnoam.newtube.debug), signed with a throwaway key: uninstall the previous release before installing this one."
+            signing="Debug build (app id io.github.danielnoam.retube.debug), signed with a throwaway key: uninstall the previous release before installing this one."
           fi
           notes="Built from ${GITHUB_SHA::8}. $signing Pick the arm64-v8a APK for a modern phone, or universal if unsure."
           gh release create "$TAG" "${apks[@]}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
