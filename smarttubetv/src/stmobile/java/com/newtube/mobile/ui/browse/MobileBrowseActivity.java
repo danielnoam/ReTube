@@ -1786,7 +1786,7 @@ public class MobileBrowseActivity extends MobileActivity
     /** The icon a nav tab shows for this section: its outline/filled pair, else the stock icon. */
     private static int navIconOrResFor(BrowseSection section) {
         if (WatchLaterTab.isWatchLaterSection(section)) {
-            return R.drawable.icon_watch_later;
+            return R.drawable.ic_nav_watch_later;
         }
         int navIcon = navIconFor(section.getId());
         return navIcon != 0 ? navIcon : Math.max(section.getResId(), 0);
