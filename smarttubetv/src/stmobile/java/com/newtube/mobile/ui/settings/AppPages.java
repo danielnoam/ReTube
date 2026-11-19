@@ -3,6 +3,7 @@ package com.newtube.mobile.ui.settings;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
@@ -14,6 +15,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.service.SidebarServi
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.BackupSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.LanguageSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.misc.BackupAndRestoreManager;
+import com.liskovsoft.smartyoutubetv2.common.misc.LocalWatchLater;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.VideoDownloads;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
@@ -21,6 +23,7 @@ import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
 import com.liskovsoft.smartyoutubetv2.common.prefs.SearchData;
 import com.liskovsoft.smartyoutubetv2.common.utils.ClickbaitRemover;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.liskovsoft.youtubeapi.service.YouTubeSignInService;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
 import com.newtube.mobile.CardMenuMigration;
 import com.newtube.mobile.downloads.DownloadFolders;
@@ -75,8 +78,6 @@ final class AppPages {
         rows.add(SettingsRow.fromRadio(language.createCountryCategory(),
                 context.getString(R.string.mobile_settings_country)).needsRestart());
 
-        rows.add(startScreen(context));
-
         rows.add(interfaceSize(context, mainUIData));
 
         rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_voice_search),
@@ -108,26 +109,61 @@ final class AppPages {
                 }).enabledWhen(() -> DownloadFolders.hasCustom(context)));
     }
 
-    /** The tab NewTube opens on: the enabled sections, then pinned channels and playlists. */
-    private static SettingsRow startScreen(Context context) {
+    /**
+     * The tab the app opens on (and Back returns to before leaving): the bottom bar's tabs that
+     * are on, in the bar's order. A start section stored from the old, longer list (a pinned
+     * channel, Music...) stays listed so the row still shows it.
+     */
+    private static SettingsRow startTab(Context context) {
         SidebarService sidebar = SidebarService.instance(context);
         SettingsRow.Choice<Integer> choice = SettingsRow.choice(context.getString(R.string.mobile_settings_start_screen));
-        int boot = sidebar.getBootSectionId();
-        for (Map.Entry<Integer, Integer> section : sidebar.getDefaultSections().entrySet()) {
-            int sectionId = section.getValue();
-            boolean current = sectionId == boot;
-            if (!current && (sectionId == MediaGroup.TYPE_SHORTS || sectionId == MediaGroup.TYPE_SETTINGS
-                    || !sidebar.isSectionPinned(sectionId))) {
+        List<Integer> listed = new ArrayList<>();
+        for (int id : TabOrder.get(context)) {
+            if (!TabOrder.isOn(context, id)) {
                 continue;
             }
-            choice.option(context.getString(sectionTitle(section.getKey())), sectionId);
+            int sectionId = id == TabOrder.WATCH_LATER ? watchLaterSectionId(sidebar) : id;
+            if (sectionId != -1 && !listed.contains(sectionId)) {
+                listed.add(sectionId);
+                choice.option(context.getString(TabOrder.titleRes(id)), sectionId);
+            }
         }
-        for (Video item : sidebar.getPinnedItems()) {
-            if (item != null && item.getTitle() != null) {
-                choice.option(item.getTitle(), item.getId());
+        int boot = sidebar.getBootSectionId();
+        if (!listed.contains(boot)) {
+            CharSequence title = sectionLabel(context, sidebar, boot);
+            if (title != null) {
+                choice.option(title, boot);
             }
         }
         return choice.bind(sidebar::getBootSectionId, sidebar::setBootSectionId);
+    }
+
+    /** The section behind the Watch later tab: the phone's own signed out, the account's "WL" pin signed in. */
+    private static int watchLaterSectionId(SidebarService sidebar) {
+        if (!YouTubeSignInService.instance().isSigned() && sidebar.isSectionPinned(LocalWatchLater.SECTION_ID)) {
+            return LocalWatchLater.SECTION_ID;
+        }
+        for (Video item : sidebar.getPinnedItems()) {
+            if (item != null && "WL".equals(item.playlistId)) {
+                return item.getId();
+            }
+        }
+        return -1;
+    }
+
+    @Nullable
+    private static CharSequence sectionLabel(Context context, SidebarService sidebar, int sectionId) {
+        for (Map.Entry<Integer, Integer> section : sidebar.getDefaultSections().entrySet()) {
+            if (section.getValue() == sectionId) {
+                return context.getString(sectionTitle(section.getKey()));
+            }
+        }
+        for (Video item : sidebar.getPinnedItems()) {
+            if (item != null && item.getTitle() != null && item.getId() == sectionId) {
+                return item.getTitle();
+            }
+        }
+        return null;
     }
 
     /**
@@ -257,6 +293,7 @@ final class AppPages {
             }
         }
         rows.add(SettingsRow.note(context.getString(R.string.mobile_settings_tabs_bar_note)));
+        rows.add(startTab(context));
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_tabs_you)));
         addSectionToggles(context, rows, sections, you, true);
         rows.add(SettingsRow.header(context.getString(R.string.mobile_you_explore)));
@@ -539,12 +576,19 @@ final class AppPages {
                     MobileSnackbar.show(context, R.string.mobile_settings_backup_done);
                 }));
 
-        rows.add(SettingsRow.action(context.getString(R.string.mobile_settings_restore),
-                restorePath != null ? context.getString(R.string.mobile_settings_restore_summary, shortPath(restorePath)) : null,
-                page -> {
-                    BackupSettingsPresenter.instance(page.requireContext()).restoreLocal();
-                    BackupSettingsPresenter.unhold();
-                }));
+        if (BackupRestore.needsPicker(context)) {
+            // The engine's restore only reads the app's own folder; the backup zip is in Documents.
+            rows.add(SettingsRow.action(context.getString(R.string.mobile_settings_restore),
+                    context.getString(R.string.mobile_settings_restore_pick_summary),
+                    SettingsPageFragment::pickBackupFile));
+        } else {
+            rows.add(SettingsRow.action(context.getString(R.string.mobile_settings_restore),
+                    restorePath != null ? context.getString(R.string.mobile_settings_restore_summary, shortPath(restorePath)) : null,
+                    page -> {
+                        BackupSettingsPresenter.instance(page.requireContext()).restoreLocal();
+                        BackupSettingsPresenter.unhold();
+                    }));
+        }
 
         rows.add(SettingsRow.<Integer>choice(context.getString(R.string.mobile_settings_auto_backup))
                 .option(context.getString(R.string.mobile_settings_auto_backup_off), -1)

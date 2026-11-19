@@ -61,6 +61,7 @@ public final class SettingsPageFragment extends Fragment implements SettingsAdap
      */
     private ActivityResultLauncher<String[]> mImportPicker;
     private ActivityResultLauncher<Uri> mFolderPicker;
+    private ActivityResultLauncher<String[]> mBackupPicker;
     private boolean mFolderPickAudio;
 
     public static SettingsPageFragment newInstance(@NonNull String pageId) {
@@ -93,6 +94,11 @@ public final class SettingsPageFragment extends Fragment implements SettingsAdap
         mImportPicker = registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
             if (uri != null) {
                 SubscriptionImport.importFrom(requireContext(), uri);
+            }
+        });
+        mBackupPicker = registerForActivityResult(new BackupRestore.PickBackup(), uri -> {
+            if (uri != null) {
+                BackupRestore.restoreFrom(requireContext(), uri);
             }
         });
         if (savedInstanceState != null) {
@@ -131,6 +137,15 @@ public final class SettingsPageFragment extends Fragment implements SettingsAdap
             mImportPicker.launch(new String[] {"*/*"});
         } catch (ActivityNotFoundException e) {
             // A ROM without Android's file picker (DocumentsUI) on it.
+            MobileSnackbar.show(requireContext(), R.string.mobile_settings_import_no_picker);
+        }
+    }
+
+    /** NEWTUBE(backup): picks the backup zip to restore settings from (Android 11+, see BackupRestore). */
+    public void pickBackupFile() {
+        try {
+            mBackupPicker.launch(new String[] {"*/*"});
+        } catch (ActivityNotFoundException e) {
             MobileSnackbar.show(requireContext(), R.string.mobile_settings_import_no_picker);
         }
     }

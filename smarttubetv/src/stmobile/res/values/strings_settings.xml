@@ -56,7 +56,7 @@
     <!-- General -->
     <string name="mobile_settings_language">Language</string>
     <string name="mobile_settings_country">Location</string>
-    <string name="mobile_settings_start_screen">Start screen</string>
+    <string name="mobile_settings_start_screen">Start tab</string>
     <string name="mobile_settings_interface_size">Interface size</string>
     <string name="mobile_settings_voice_search">Search by voice right away</string>
     <string name="mobile_settings_voice_search_summary">Opening Search starts listening</string>
@@ -71,7 +71,7 @@
 
     <!-- Tabs and feeds -->
     <string name="mobile_settings_tabs">Tabs</string>
-    <string name="mobile_settings_tabs_summary">Choose what shows in the bottom bar and in You</string>
+    <string name="mobile_settings_tabs_summary">Choose what shows in the bottom bar and in You, and the tab the app opens on</string>
     <string name="mobile_settings_tabs_bottom_bar">Bottom bar</string>
     <string name="mobile_settings_tabs_watch_later">Watch later</string>
     <string name="mobile_settings_tabs_bar_note">Drag a tab by its handle to change the bar\'s order. The bar holds four tabs plus You; any after the fourth move to You.</string>
@@ -158,6 +158,8 @@
     <string name="mobile_settings_backup_done">Backup saved</string>
     <string name="mobile_settings_restore">Restore</string>
     <string name="mobile_settings_restore_summary">From a backup in %1$s</string>
+    <string name="mobile_settings_restore_pick_summary">Pick a backup .zip, like the ones Back up now saves to Documents/SmartTubeBackup</string>
+    <string name="mobile_settings_restore_not_backup">That file isn\'t a ReTube backup</string>
     <string name="mobile_settings_auto_backup">Automatic backup</string>
     <string name="mobile_settings_auto_backup_off">Never</string>
     <string name="mobile_settings_backup_note">A backup holds everything you set up in ReTube. What belongs to your YouTube account, like subscriptions and history, stays there.</string>

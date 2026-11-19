@@ -54,7 +54,7 @@
     <!-- General -->
     <string name="mobile_settings_language">Idioma</string>
     <string name="mobile_settings_country">Ubicación</string>
-    <string name="mobile_settings_start_screen">Pantalla de inicio</string>
+    <string name="mobile_settings_start_screen">Pestaña de inicio</string>
     <string name="mobile_settings_interface_size">Tamaño de la interfaz</string>
     <string name="mobile_settings_voice_search">Buscar por voz al instante</string>
     <string name="mobile_settings_voice_search_summary">Al abrir Buscar empieza a escuchar</string>
@@ -69,7 +69,7 @@
 
     <!-- Tabs and feeds -->
     <string name="mobile_settings_tabs">Pestañas</string>
-    <string name="mobile_settings_tabs_summary">Elige qué aparece en la barra inferior y en Tú</string>
+    <string name="mobile_settings_tabs_summary">Elige qué aparece en la barra inferior y en Tú, y la pestaña con la que se abre la app</string>
     <string name="mobile_settings_tabs_bottom_bar">Barra inferior</string>
     <string name="mobile_settings_tabs_watch_later">Ver más tarde</string>
     <string name="mobile_settings_tabs_bar_note">Arrastra el asa de una pestaña para cambiar el orden de la barra. Admite cuatro pestañas más Tú; las que pasen de cuatro van a Tú.</string>
