@@ -15,6 +15,9 @@
     <string name="mobile_player_audio_track">Audio track</string>
     <string name="mobile_player_subtitles">Subtitles</string>
     <string name="mobile_player_speed">Playback speed</string>
+    <string name="mobile_player_autoplay">Autoplay</string>
+    <string name="mobile_autoplay_on">Autoplay is on</string>
+    <string name="mobile_autoplay_off">Autoplay is off</string>
     <!-- Spoken for the current-chapter button above the seek bar (it opens the Chapters list). -->
     <string name="mobile_player_chapter_button">Chapter: %1$s. Show all chapters</string>
     <!-- NEWTUBE(seek bar): the duration after the position ("1:10 / 4:26:52"), and the current
@@ -198,7 +201,8 @@
     <string name="mobile_captions_off_toast">Subtitles off</string>
 
     <!-- Speed sheet (sheet_mobile_speed / showSpeedSheet) -->
-    <string name="mobile_speed_normal">Normal</string>
+    <!-- Unused since speeds all read "1x"-style; kept so its Weblate translations stay valid. -->
+    <string name="mobile_speed_normal" tools:ignore="UnusedResources">Normal</string>
     <string name="mobile_speed_more">More speeds</string>
     <string name="mobile_speed_toast">Playback speed: %1$s</string>
     <string name="mobile_signin_title">Sign in</string>
