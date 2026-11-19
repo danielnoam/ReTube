@@ -216,6 +216,11 @@ public class MobilePlaybackActivity extends MobileActivity
     @Nullable private View mOptionsRow;
     /** NEWTUBE(clock): the time in the fullscreen top bar, beside the title. */
     @Nullable private View mClockView;
+    /** NEWTUBE(autoplay): the top bar's Autoplay switch (AutoplaySwitch). */
+    @Nullable private com.google.android.material.switchmaterial.SwitchMaterial mAutoplaySwitch;
+    private boolean mSyncingAutoplay;
+    /** NEWTUBE(speed): the top bar's current-speed chip; a tap opens the speed sheet. */
+    @Nullable private TextView mSpeedChip;
     /** Over the top of the video: "Release to cancel" (seek bar). */
     @Nullable private TextView mTopPill;
     /** NEWTUBE(gestures): brightness / volume while a side swipe sets it (SwipeLevels). */
@@ -709,6 +714,20 @@ public class MobilePlaybackActivity extends MobileActivity
         mTransport = findViewById(R.id.mobile_player_transport);
         mOptionsRow = findViewById(R.id.mobile_player_options);
         mClockView = findViewById(R.id.mobile_player_clock);
+        mAutoplaySwitch = findViewById(R.id.mobile_player_autoplay);
+        mSpeedChip = findViewById(R.id.mobile_player_speed_chip);
+        if (mAutoplaySwitch != null) {
+            syncAutoplaySwitch();
+            mAutoplaySwitch.setOnCheckedChangeListener((button, on) -> {
+                if (!mSyncingAutoplay) { // the user's flip, not syncAutoplaySwitch()
+                    onAutoplayFlipped(on);
+                }
+            });
+        }
+        if (mSpeedChip != null) {
+            updateSpeedChip();
+            mSpeedChip.setOnClickListener(v -> showSpeedSheet());
+        }
         if (mOptionsRow != null && mTitleView != null) {
             // NEWTUBE(clock): the title stops before the options row however wide it is (the clock
             // widens it in fullscreen), never under it; 148dp is the room the three buttons need.
@@ -1039,6 +1058,7 @@ public class MobilePlaybackActivity extends MobileActivity
         long touchPrefetchMs = com.newtube.mobile.player.SwitchExperiments.touchPrefetchStillMs();
         mRelatedAdapter = new RelatedVideoAdapter(this::onRelatedClicked,
                 touchPrefetchMs > 0 ? this::onRelatedPressed : null, touchPrefetchMs);
+        mRelatedAdapter.setOnLongClickListener(this::onRelatedLongClicked);
         mWatchRelated.setLayoutManager(new LinearLayoutManager(this));
         mWatchRelated.setNestedScrollingEnabled(false);
         mWatchRelated.setHasFixedSize(false);
@@ -1052,6 +1072,7 @@ public class MobilePlaybackActivity extends MobileActivity
         // card (nested scrolling on + a max height) so a long playlist can't push the rest of the
         // watch page off the bottom. Rows are re-bound on every video change, so no fixed size.
         mQueueAdapter = new RelatedVideoAdapter(this::onRelatedClicked);
+        mQueueAdapter.setOnLongClickListener(this::onRelatedLongClicked);
         mQueueList.setLayoutManager(new LinearLayoutManager(this));
         mQueueList.setHasFixedSize(false);
         mQueueList.setAdapter(mQueueAdapter);
@@ -3592,6 +3613,9 @@ public class MobilePlaybackActivity extends MobileActivity
         }
         mTimeBar.setShown(true, animate);
         updatePlayPauseIcon();
+        // NEWTUBE(autoplay, speed): Settings or the gear may have changed either meanwhile.
+        syncAutoplaySwitch();
+        updateSpeedChip();
 
         // NEWTUBE(perf): drive the 500ms progress loop only while controls are visible. startProgress
         // ticks once immediately (refresh on show) then reschedules every 500ms.
@@ -4249,17 +4273,18 @@ public class MobilePlaybackActivity extends MobileActivity
         FormatItem tempOverride = playerData.getTempVideoFormat();
         FormatItem chosen = tempOverride != null ? tempOverride : playerData.getFormat(FormatItem.TYPE_VIDEO);
 
+        androidx.media3.common.Format playing = mPlayer != null ? mPlayer.getVideoFormat() : null;
         if (!isAutoFormat(chosen) && chosen.getHeight() > 0) {
-            return qualityLabel(chosen);
+            return playing != null && playing.height > 0
+                    ? qualityLabel(playing.width, playing.height, playing.frameRate) : qualityLabel(chosen);
         }
 
-        androidx.media3.common.Format playing = mPlayer != null ? mPlayer.getVideoFormat() : null;
         return playing != null && playing.height > 0
                 ? getString(R.string.mobile_quality_auto_current, qualityLabel(playing.width, playing.height, playing.frameRate))
                 : getString(R.string.mobile_quality_auto_short);
     }
 
-    /** Trailing value for the Speed row: "Normal", "1.5x", ... */
+    /** Trailing value for the Speed row and the top bar's speed chip: "1x", "1.5x", ... */
     private String currentSpeedLabel() {
         float speed = mExoPlayerController != null ? mExoPlayerController.getSpeed() : -1;
         return speedLabel(speed <= 0 ? 1f : speed);
@@ -6558,6 +6583,19 @@ public class MobilePlaybackActivity extends MobileActivity
                     }
                     break;
                 }
+                case VideoGroup.ACTION_PREPEND: {
+                    // NEWTUBE(menu): Play next from a card menu goes to the head of the queue row;
+                    // a video already in it moves there. It used to fall through to the append.
+                    List<Video> existing = mSuggestionVideos.get(id);
+                    if (existing == null) {
+                        mSuggestionVideos.put(id, new ArrayList<>(incoming));
+                    } else {
+                        removeByVideoId(existing, incoming);
+                        existing.addAll(0, incoming);
+                    }
+                    mSuggestionGroups.put(id, group);
+                    break;
+                }
                 case VideoGroup.ACTION_APPEND:
                 default: {
                     List<Video> existing = mSuggestionVideos.get(id);
@@ -6575,8 +6613,52 @@ public class MobilePlaybackActivity extends MobileActivity
                 }
             }
 
+            // NEWTUBE(menu): the playback queue leads Up next, as when a video opens (the controller
+            // delivers it first). One that a card menu started mid-video went last, often past the
+            // rows the list shows.
+            if (group.getType() == com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_PLAYBACK_QUEUE
+                    && mSuggestionVideos.containsKey(id)) {
+                moveRowToFront(id);
+            }
+
             rebuildRelatedList();
         });
+    }
+
+    /** Takes out of {@code videos} every video of {@code gone}, matched by videoId. */
+    private static void removeByVideoId(List<Video> videos, List<Video> gone) {
+        for (Video video : gone) {
+            if (video == null || video.videoId == null) {
+                continue;
+            }
+            for (java.util.Iterator<Video> it = videos.iterator(); it.hasNext(); ) {
+                Video v = it.next();
+                if (v != null && video.videoId.equals(v.videoId)) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    /** Puts row {@code id} first in both suggestion maps, keeping the others' order. */
+    private void moveRowToFront(int id) {
+        if (mSuggestionVideos.keySet().iterator().next() == id) {
+            return;
+        }
+        LinkedHashMap<Integer, List<Video>> videos = new LinkedHashMap<>();
+        videos.put(id, mSuggestionVideos.remove(id));
+        videos.putAll(mSuggestionVideos);
+        mSuggestionVideos.clear();
+        mSuggestionVideos.putAll(videos);
+
+        VideoGroup row = mSuggestionGroups.remove(id);
+        if (row != null) {
+            LinkedHashMap<Integer, VideoGroup> groups = new LinkedHashMap<>();
+            groups.put(id, row);
+            groups.putAll(mSuggestionGroups);
+            mSuggestionGroups.clear();
+            mSuggestionGroups.putAll(groups);
+        }
     }
 
     @Override
@@ -6585,9 +6667,20 @@ public class MobilePlaybackActivity extends MobileActivity
             return;
         }
 
+        // NEWTUBE(menu): the shared controller hands over the ONE video a menu action took out of a
+        // list (Not interested, Remove from queue...), so only that video goes, matched by id; the
+        // list itself goes once nothing is left in it. Dropping the whole list by its id emptied
+        // Up next after one long-press action.
         runOnUiThread(() -> {
-            mSuggestionVideos.remove(group.getId());
-            mSuggestionGroups.remove(group.getId());
+            int id = group.getId();
+            List<Video> existing = mSuggestionVideos.get(id);
+            if (existing != null && group.getVideos() != null) {
+                removeByVideoId(existing, group.getVideos());
+            }
+            if (existing == null || existing.isEmpty()) {
+                mSuggestionVideos.remove(id);
+                mSuggestionGroups.remove(id);
+            }
             rebuildRelatedList();
         });
     }
@@ -7292,14 +7385,16 @@ public class MobilePlaybackActivity extends MobileActivity
     }
 
     /**
-     * "Auto" = a ceiling preset, not a concrete stream format. The DEFAULT format constants ship
-     * with the isPreset flag unset but a null format id - the selector's own "preset by id
-     * presence" rule (VideoTrack.inBounds) - so both must count, or a fresh install never shows
-     * Auto as active and explicit rungs persist instead of being per-session.
+     * Auto uses a ceiling instead of a fixed stream. The DEFAULT format constants ship
+     * with the isPreset flag unset and a null format id. A saved resolution preset has the flag
+     * set and stays fixed; it must not check-mark Auto merely because it has no stream id yet.
      */
     private static boolean isAutoFormat(FormatItem item) {
-        if (item == null || item.isPreset()) {
+        if (item == null) {
             return true;
+        }
+        if (item.isPreset()) {
+            return false;
         }
 
         com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.track.MediaTrack track = item.getTrack();
@@ -7655,17 +7750,14 @@ public class MobilePlaybackActivity extends MobileActivity
 
     // ---------------------------------------------------------------------------------
     // Playback speed: native preset sheet, classic official-app anatomy (0.25x..2x flat
-    // list, "Normal" for 1x, leading check). The exhaustive TV dialog (0.25-4x list +
+    // list, leading check). The exhaustive TV dialog (0.25-4x list +
     // remember-speed options) stays reachable behind "More speeds".
     // ---------------------------------------------------------------------------------
 
     private static final float[] SPEED_PRESETS = {0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f};
 
-    /** "Normal" for 1x (official-app wording), "0.5x"/"1.5x"/"2x" otherwise. */
+    /** "1x", "1.5x", "0.25x": the same form for every speed, 1x included (it read "Normal"). */
     private String speedLabel(float speed) {
-        if (Helpers.floatEquals(speed, 1.0f)) {
-            return getString(R.string.mobile_speed_normal);
-        }
         String number = speed == Math.floor(speed)
                 ? String.valueOf((int) speed) : String.valueOf(speed);
         return number + "x";
@@ -8524,6 +8616,17 @@ public class MobilePlaybackActivity extends MobileActivity
         }
     }
 
+    /**
+     * NEWTUBE(menu): long press on an Up next or queue row = its card menu, like a feed card's.
+     * {@code PlayerUIController.onSuggestionItemLongClicked} shows it and keeps these lists in step
+     * with what the menu does (removed from the queue, played next...).
+     */
+    private void onRelatedLongClicked(Video video) {
+        if (mPresenter != null && video != null) {
+            mPresenter.onSuggestionItemLongClicked(video);
+        }
+    }
+
     /** Watch-page channel row tap → the mobile channel screen. Same routing as the card menu's
      *  "Open channel" entry; playback stays alive behind the channel screen (the pending-view
      *  flag in onUserLeaveHint keeps auto-PiP from hijacking the in-app navigation). */
@@ -8537,6 +8640,21 @@ public class MobilePlaybackActivity extends MobileActivity
         // the watch page untouched.
         MiniPlayerBridge.prepareNavigation(this);
         MediaServiceManager.chooseChannelPresenter(this, video);
+    }
+
+    /**
+     * NEWTUBE(menu): Open channel in an Up next row's menu (PlayerUIController) marks the route as
+     * the channel row does ({@link #openCurrentChannel}), so the video docks in the channel's mini
+     * player. Only while this page is on screen under that menu: VideoMenuPresenter keeps its last
+     * callback for menus shown without one (Search, Channel), and a docked player must not dock
+     * again.
+     */
+    @Override
+    public void prepareChannelNavigation() {
+        if (mIsStopped || isFinishing() || MiniPlayerBridge.isActive()) {
+            return;
+        }
+        MiniPlayerBridge.prepareNavigation(this);
     }
 
     private void maybePageSuggestions() {
@@ -8655,6 +8773,9 @@ public class MobilePlaybackActivity extends MobileActivity
         Video current = getVideo();
         String currentId = current != null ? current.videoId : null;
         Integer queueId = findQueueGroupId(current);
+        // NEWTUBE(menu): Up next lists a video once. One queued from its card menu is still in its
+        // related row too; the queue's copy comes first (see updateSuggestions) and is the one kept.
+        java.util.Set<String> listed = new java.util.HashSet<>();
 
         for (Map.Entry<Integer, List<Video>> entry : mSuggestionVideos.entrySet()) {
             boolean isQueueRow = queueId != null && queueId.equals(entry.getKey());
@@ -8668,7 +8789,8 @@ public class MobilePlaybackActivity extends MobileActivity
                 }
                 if (isQueueRow) {
                     mQueueVideos.add(v);
-                } else if (currentId == null || !currentId.equals(v.videoId)) {
+                } else if ((currentId == null || !currentId.equals(v.videoId))
+                        && (v.videoId == null || listed.add(v.videoId))) {
                     // Match by videoId, not Video.equals (unreliable across instances).
                     mRelatedVideos.add(v);
                 }
@@ -9173,6 +9295,49 @@ public class MobilePlaybackActivity extends MobileActivity
     @Override
     public void setSpeed(float speed) {
         mExoPlayerController.setSpeed(speed);
+        runOnUiThread(this::updateSpeedChip); // the shared controllers set it too (per-video speed)
+    }
+
+    /** NEWTUBE(speed): "1x", "1.5x" in the top bar, read from the player. */
+    private void updateSpeedChip() {
+        if (mSpeedChip != null) {
+            String label = currentSpeedLabel();
+            mSpeedChip.setText(label);
+            mSpeedChip.setContentDescription(getString(R.string.mobile_speed_toast, label));
+        }
+    }
+
+    /** NEWTUBE(autoplay): the switch shows the stored mode (the gear's Repeat mode changes it too). */
+    private void syncAutoplaySwitch() {
+        if (mAutoplaySwitch != null) {
+            boolean on = isAutoplayOn();
+            if (mAutoplaySwitch.isChecked() != on) {
+                mSyncingAutoplay = true;
+                mAutoplaySwitch.setChecked(on);
+                mSyncingAutoplay = false;
+            }
+        }
+    }
+
+    /**
+     * Plays on into another video: the stored mode, or a Shuffle started from a playlist page,
+     * which is scoped to that queue (QueuePlaybackMode) and never reaches the stored mode.
+     */
+    private boolean isAutoplayOn() {
+        return AutoplaySwitch.isOn(this) || QueuePlaybackMode.coversQueueOf(getVideo());
+    }
+
+    private void onAutoplayFlipped(boolean on) {
+        // A queue-scoped Shuffle already plays on: turning Autoplay "on" must not end it (writing
+        // the stored mode clears it).
+        if (!on || !QueuePlaybackMode.coversQueueOf(getVideo())) {
+            int mode = AutoplaySwitch.set(this, on);
+            setButtonState(R.id.action_repeat, mode);
+        }
+        armAutoHide();
+        com.google.android.material.snackbar.Snackbar.make(findViewById(android.R.id.content),
+                on ? R.string.mobile_autoplay_on : R.string.mobile_autoplay_off,
+                com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show();
     }
 
     @Override

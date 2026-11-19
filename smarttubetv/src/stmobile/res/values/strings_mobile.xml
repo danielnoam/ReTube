@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="mobile_search_filters">Search filters</string>
+    <string name="mobile_search_apply">Apply</string>
+    <string name="mobile_search_prioritize">Prioritize</string>
+    <string name="mobile_search_popularity">Popularity</string>
     <!-- ReTube branding: override SmartTube's app_name for the mobile flavor only -->
     <string name="app_name" translatable="false">ReTube</string>
     <string name="mobile_player_back">Back</string>
@@ -15,6 +19,9 @@
     <string name="mobile_player_audio_track">Audio track</string>
     <string name="mobile_player_subtitles">Subtitles</string>
     <string name="mobile_player_speed">Playback speed</string>
+    <string name="mobile_player_autoplay">Autoplay</string>
+    <string name="mobile_autoplay_on">Autoplay is on</string>
+    <string name="mobile_autoplay_off">Autoplay is off</string>
     <!-- Spoken for the current-chapter button above the seek bar (it opens the Chapters list). -->
     <string name="mobile_player_chapter_button">Chapter: %1$s. Show all chapters</string>
     <!-- NEWTUBE(seek bar): the duration after the position ("1:10 / 4:26:52"), and the current
@@ -198,7 +205,8 @@
     <string name="mobile_captions_off_toast">Subtitles off</string>
 
     <!-- Speed sheet (sheet_mobile_speed / showSpeedSheet) -->
-    <string name="mobile_speed_normal">Normal</string>
+    <!-- Unused since speeds all read "1x"-style; kept so its Weblate translations stay valid. -->
+    <string name="mobile_speed_normal" tools:ignore="UnusedResources">Normal</string>
     <string name="mobile_speed_more">More speeds</string>
     <string name="mobile_speed_toast">Playback speed: %1$s</string>
     <string name="mobile_signin_title">Sign in</string>
@@ -528,4 +536,5 @@
     <string name="mobile_card_mark_unwatched">Mark as unwatched</string>
     <string name="mobile_card_marked_watched">Marked as watched</string>
     <string name="mobile_card_marked_unwatched">Marked as unwatched</string>
+    <string name="mobile_settings_quality_fixed_intro">Auto adapts to your connection. A selected resolution stays fixed when available, otherwise the best lower resolution is used. Picking a resolution in the player changes this too.</string>
 </resources>

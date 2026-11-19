@@ -3,6 +3,10 @@
      the (already localized) shared header_* strings; "You" is ours, so it needs a
      translation or the bar reads "Inicio / Suscripciones / Historial / You". -->
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="mobile_search_filters">Filtros de búsqueda</string>
+    <string name="mobile_search_apply">Aplicar</string>
+    <string name="mobile_search_prioritize">Priorizar</string>
+    <string name="mobile_search_popularity">Popularidad</string>
     <string name="mobile_nav_you">Tú</string>
     <string name="mobile_you_explore">Explorar</string>
 
@@ -59,6 +63,9 @@
     <string name="mobile_player_release_to_cancel">Suelta para cancelar</string>
     <!-- Speed sheet -->
     <string name="mobile_player_speed">Velocidad de reproducción</string>
+    <string name="mobile_player_autoplay">Reproducción automática</string>
+    <string name="mobile_autoplay_on">La reproducción automática está activada</string>
+    <string name="mobile_autoplay_off">La reproducción automática está desactivada</string>
     <string name="mobile_speed_normal">Normal</string>
     <string name="mobile_speed_more">Más velocidades</string>
     <string name="mobile_speed_toast">Velocidad de reproducción: %1$s</string>
@@ -479,4 +486,5 @@
     <string name="mobile_card_mark_unwatched">Marcar como no visto</string>
     <string name="mobile_card_marked_watched">Marcado como visto</string>
     <string name="mobile_card_marked_unwatched">Marcado como no visto</string>
+    <string name="mobile_settings_quality_fixed_intro">Automática se adapta a tu conexión. La resolución elegida se mantiene cuando está disponible; si no, se usa la mejor resolución inferior. Elegir una resolución en el reproductor también cambia este ajuste.</string>
 </resources>
