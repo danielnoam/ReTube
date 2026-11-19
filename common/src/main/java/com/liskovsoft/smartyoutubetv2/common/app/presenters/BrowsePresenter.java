@@ -1565,6 +1565,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     }
 
     @Nullable
+    public List<BrowseSection> getSections() {
+        return new ArrayList<>(mSections);
+    }
+
     public BrowseSection getCurrentSection() {
         return mCurrentSection;
     }

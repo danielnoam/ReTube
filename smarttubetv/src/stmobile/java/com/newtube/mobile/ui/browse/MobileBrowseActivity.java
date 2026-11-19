@@ -1,5 +1,8 @@
 package com.newtube.mobile.ui.browse;
 
+import static com.newtube.mobile.ui.browse.BrowseNavigation.ITEM_ID_OFFSET;
+import static com.newtube.mobile.ui.browse.BrowseNavigation.YOU_ITEM_ID;
+
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -96,7 +99,7 @@ import java.util.List;
  * {@code BottomNavigationView} hard-caps at 5 items, but {@code BrowsePresenter} can
  * deliver 10+ sections (Home, Trending, Subscriptions, History, Music, Gaming, News,
  * Playlists, Settings, ...). The bar shows only the curated
- * {@link TabOrder} tabs plus the synthetic You tab - no backfill; every other
+ * {@link BrowseNavigation} ({@link TabOrder}) tabs plus the synthetic You tab - no backfill; every other
  * delivered section (and Settings, and the account entry) is reachable through the You
  * tab's list instead (YouTube's "You" model - there is no drawer).
  *
@@ -105,8 +108,6 @@ import java.util.List;
  */
 public class MobileBrowseActivity extends MobileActivity
         implements BrowseView, MiniPlayerBridge.MiniHost {
-    /** BottomNavigationView item ids must be non-zero; BrowseSection ids start at 0. */
-    private static final int ITEM_ID_OFFSET = 1_000_000;
     private static final int SCROLL_END_THRESHOLD_ITEMS = 6;
     /**
      * NEWTUBE(lazy-home): Home's next section page is requested when the last visible card is this
@@ -114,16 +115,10 @@ public class MobileBrowseActivity extends MobileActivity
      * (one /browse, ~0.2-0.5 s) lands before the reader reaches the end. See HomeSectionPacer.
      */
     private static final int NEAR_END_LOOKAHEAD_ITEMS = 16;
-    /** BottomNavigationView hard-caps at this many items. */
-    private static final int MAX_NAV_ITEMS = 5;
-    /**
-     * Menu item id of the synthetic "You" tab (account + extra sections + settings). Far above
-     * {@link #ITEM_ID_OFFSET} + any real section id, so it can never collide with one.
-     */
-    private static final int YOU_ITEM_ID = 2_000_000;
     private static final int REQUEST_POST_NOTIFICATIONS = 1;
     /** Intent action (download notifications) that lands on the Downloads tab. */
     public static final String ACTION_OPEN_DOWNLOADS = "com.newtube.mobile.OPEN_DOWNLOADS";
+    public static final String EXTRA_NAV_ITEM = "com.newtube.mobile.NAV_ITEM";
 
     private BrowsePresenter mPresenter;
 
@@ -262,6 +257,7 @@ public class MobileBrowseActivity extends MobileActivity
         // while it is the section on screen; see onDownloadsChanged.
         DownloadRegistry.instance(this).addListener(mDownloadsListener);
         handleOpenDownloads(getIntent());
+        handleNavigation(getIntent());
 
         // NEWTUBE(update-flow): a known update puts a dot on the You tab and a row at the top of
         // its list; the first launch after an update says so (once the feed has had its moment).
@@ -920,6 +916,10 @@ public class MobileBrowseActivity extends MobileActivity
         startActivity(com.newtube.mobile.ui.settings.MobileSettingsActivity.intent(this, null));
     }
 
+    public int getSelectedNavigationItemId() {
+        return mBottomNav.getSelectedItemId();
+    }
+
     private void setupBottomNav() {
         mBottomNav.setOnItemSelectedListener(item -> {
             if (!mSuppressNavCallback) {
@@ -1053,7 +1053,7 @@ public class MobileBrowseActivity extends MobileActivity
             addYouUpdateRow();
         }
 
-        List<BrowseSection> navSections = selectNavSections();
+        List<BrowseSection> navSections = BrowseNavigation.sections(this, mSections);
         List<BrowseSection> personal = new ArrayList<>();
         List<BrowseSection> pinned = new ArrayList<>();
         List<BrowseSection> explore = new ArrayList<>();
@@ -1703,13 +1703,13 @@ public class MobileBrowseActivity extends MobileActivity
 
     private void rebuildBottomNav() {
         Menu menu = mBottomNav.getMenu();
-        List<BrowseSection> navSections = selectNavSections();
+        List<BrowseSection> navSections = BrowseNavigation.sections(this, mSections);
 
         StringBuilder signature = new StringBuilder();
         for (BrowseSection section : navSections) {
             signature.append(toMenuItemId(section.getId())).append('\u0001')
                     .append(section.getTitle()).append('\u0001')
-                    .append(navIconOrResFor(section)).append('\u0002');
+                    .append(BrowseNavigation.iconFor(section)).append('\u0002');
         }
         String newSignature = signature.toString();
 
@@ -1731,7 +1731,7 @@ public class MobileBrowseActivity extends MobileActivity
 
             android.view.MenuItem item = menu.add(Menu.NONE, toMenuItemId(section.getId()), i, section.getTitle());
 
-            int icon = navIconOrResFor(section);
+            int icon = BrowseNavigation.iconFor(section);
             if (icon > 0) {
                 item.setIcon(icon);
             }
@@ -1781,94 +1781,6 @@ public class MobileBrowseActivity extends MobileActivity
         if (force || mBottomNav.getSelectedItemId() != itemId) {
             mBottomNav.setSelectedItemId(itemId);
         }
-    }
-
-    /** The icon a nav tab shows for this section: its outline/filled pair, else the stock icon. */
-    private static int navIconOrResFor(BrowseSection section) {
-        if (WatchLaterTab.isWatchLaterSection(section)) {
-            return R.drawable.ic_nav_watch_later;
-        }
-        int navIcon = navIconFor(section.getId());
-        return navIcon != 0 ? navIcon : Math.max(section.getResId(), 0);
-    }
-
-    /**
-     * State-list icons (outline when idle, filled when selected - the YouTube bar's
-     * active-tab signal, since both states tint plain white) for the curated bottom-nav
-     * sections. Sections without a pair (drawer-only ones) keep their stock
-     * {@link BrowseSection#getResId()} icon.
-     */
-    private static int navIconFor(int sectionId) {
-        switch (sectionId) {
-            case MediaGroup.TYPE_HOME:
-                return R.drawable.ic_nav_home;
-            case MediaGroup.TYPE_SUBSCRIPTIONS:
-                return R.drawable.ic_nav_subscriptions;
-            case MediaGroup.TYPE_HISTORY:
-                return R.drawable.ic_nav_history;
-            case VideoDownloads.SECTION_ID:
-                return R.drawable.ic_nav_downloads;
-            default:
-                return 0;
-        }
-    }
-
-    /**
-     * The bottom nav shows ONLY the {@link TabOrder} tabs (in the user's
-     * order, when present and enabled) — no backfill from the other delivered
-     * sections; everything else lives in the You panel. BrowsePresenter can deliver
-     * many more sections, and the {@link BottomNavigationView} itself hard-caps at
-     * {@link #MAX_NAV_ITEMS}.
-     */
-    private List<BrowseSection> selectNavSections() {
-        List<BrowseSection> enabledSections = new ArrayList<>();
-
-        for (BrowseSection section : mSections) {
-            if (section.isEnabled() && section.getId() != MediaGroup.TYPE_SETTINGS) {
-                enabledSections.add(section);
-            }
-        }
-
-        List<BrowseSection> chosen = new ArrayList<>();
-        // The You tab always takes one of the bar's slots.
-        int maxSections = MAX_NAV_ITEMS - 1;
-        boolean watchLaterTab = WatchLaterTab.isOn(this);
-
-        // Settings > Tabs > Order; when the bar is full, the last tab moves to You.
-        for (int id : TabOrder.get(this)) {
-            if (chosen.size() >= maxSections) {
-                break;
-            }
-            BrowseSection match;
-            if (id == TabOrder.WATCH_LATER) {
-                match = watchLaterTab ? WatchLaterTab.pick(enabledSections) : null;
-            } else {
-                match = findPreferredSection(enabledSections, chosen, id, TabOrder.titleRes(id));
-            }
-            if (match != null && !chosen.contains(match)) {
-                chosen.add(match);
-            }
-        }
-
-        return chosen;
-    }
-
-    /** Matches primarily by section id; falls back to a title-string match. */
-    private BrowseSection findPreferredSection(
-            List<BrowseSection> candidates, List<BrowseSection> alreadyChosen, int id, int titleResId) {
-        String fallbackTitle = getString(titleResId);
-
-        for (BrowseSection section : candidates) {
-            if (alreadyChosen.contains(section)) {
-                continue;
-            }
-
-            if (section.getId() == id || Helpers.equals(section.getTitle(), fallbackTitle)) {
-                return section;
-            }
-        }
-
-        return null;
     }
 
     // ---------------------------------------------------------------------------------
@@ -2018,6 +1930,17 @@ public class MobileBrowseActivity extends MobileActivity
         super.onNewIntent(intent);
         setIntent(intent);
         handleOpenDownloads(intent);
+        handleNavigation(intent);
+    }
+
+    private void handleNavigation(Intent intent) {
+        if (intent != null && intent.hasExtra(EXTRA_NAV_ITEM)) {
+            int itemId = intent.getIntExtra(EXTRA_NAV_ITEM, YOU_ITEM_ID);
+            intent.removeExtra(EXTRA_NAV_ITEM);
+            if (mBottomNav.getMenu().findItem(itemId) != null) {
+                mBottomNav.setSelectedItemId(itemId);
+            }
+        }
     }
 
     @Override
