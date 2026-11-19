@@ -4249,11 +4249,12 @@ public class MobilePlaybackActivity extends MobileActivity
         FormatItem tempOverride = playerData.getTempVideoFormat();
         FormatItem chosen = tempOverride != null ? tempOverride : playerData.getFormat(FormatItem.TYPE_VIDEO);
 
+        androidx.media3.common.Format playing = mPlayer != null ? mPlayer.getVideoFormat() : null;
         if (!isAutoFormat(chosen) && chosen.getHeight() > 0) {
-            return qualityLabel(chosen);
+            return playing != null && playing.height > 0
+                    ? qualityLabel(playing.width, playing.height, playing.frameRate) : qualityLabel(chosen);
         }
 
-        androidx.media3.common.Format playing = mPlayer != null ? mPlayer.getVideoFormat() : null;
         return playing != null && playing.height > 0
                 ? getString(R.string.mobile_quality_auto_current, qualityLabel(playing.width, playing.height, playing.frameRate))
                 : getString(R.string.mobile_quality_auto_short);
@@ -7292,14 +7293,16 @@ public class MobilePlaybackActivity extends MobileActivity
     }
 
     /**
-     * "Auto" = a ceiling preset, not a concrete stream format. The DEFAULT format constants ship
-     * with the isPreset flag unset but a null format id - the selector's own "preset by id
-     * presence" rule (VideoTrack.inBounds) - so both must count, or a fresh install never shows
-     * Auto as active and explicit rungs persist instead of being per-session.
+     * Auto uses a ceiling instead of a fixed stream. The DEFAULT format constants ship
+     * with the isPreset flag unset and a null format id. A saved resolution preset has the flag
+     * set and stays fixed; it must not check-mark Auto merely because it has no stream id yet.
      */
     private static boolean isAutoFormat(FormatItem item) {
-        if (item == null || item.isPreset()) {
+        if (item == null) {
             return true;
+        }
+        if (item.isPreset()) {
+            return false;
         }
 
         com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.track.MediaTrack track = item.getTrack();
