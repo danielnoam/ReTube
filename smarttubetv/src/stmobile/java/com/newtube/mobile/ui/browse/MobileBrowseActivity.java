@@ -54,6 +54,7 @@ import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.utils.LocalPlaylistSheet;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.liskovsoft.smartyoutubetv2.common.app.presenters.service.SidebarService;
 import com.liskovsoft.smartyoutubetv2.common.misc.LocalWatchLater;
 import com.liskovsoft.smartyoutubetv2.common.misc.VideoDownloads;
 import com.newtube.mobile.downloads.DownloadItem;
@@ -2108,19 +2109,25 @@ public class MobileBrowseActivity extends MobileActivity
             return;
         }
 
-        // On the You tab itself, back goes Home (YouTube behavior) instead of exiting.
-        // NEWTUBE(back-home): so does back on any other tab (Subscriptions, History, Downloads) -
-        // it used to exit the app from there, dropping the mini-player and the Home scroll. Only
-        // Home itself exits.
-        if (mYouShowing || mCurrentSectionId != MediaGroup.TYPE_HOME) {
-            int homeItemId = toMenuItemId(MediaGroup.TYPE_HOME);
-            if (mBottomNav.getMenu().findItem(homeItemId) != null) {
-                mBottomNav.setSelectedItemId(homeItemId); // listener hides the panel + loads Home
+        // On the You tab itself, back goes to the start tab (YouTube behavior) instead of exiting.
+        // NEWTUBE(back-home): so does back on any other tab - it used to exit the app from there,
+        // dropping the mini-player and the scroll. Only the start tab (Settings > Tabs) exits.
+        int startSectionId = backTargetSectionId();
+        if (mYouShowing || mCurrentSectionId != startSectionId) {
+            int startItemId = toMenuItemId(startSectionId);
+            if (mBottomNav.getMenu().findItem(startItemId) != null) {
+                mBottomNav.setSelectedItemId(startItemId); // listener hides the panel + loads the tab
                 return;
             }
         }
 
         finish();
+    }
+
+    /** The start tab when it has a tab in the bar, else Home. */
+    private int backTargetSectionId() {
+        int boot = SidebarService.instance(this).getBootSectionId();
+        return mBottomNav.getMenu().findItem(toMenuItemId(boot)) != null ? boot : MediaGroup.TYPE_HOME;
     }
 
     // ---------------------------------------------------------------------------------

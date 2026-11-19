@@ -443,6 +443,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         getView().removeAllSections();
 
         int bootSectionId = getSidebarService().getBootSectionId();
+        // NEWTUBE(start-tab): a start section that is off (or gone) falls back to Home, not to
+        // whatever index an earlier refresh left behind.
+        mBootSectionIndex = -1;
+        int homeIndex = 0;
 
         int index = 0;
 
@@ -462,10 +466,17 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                 if (section.getId() == bootSectionId) {
                     mBootSectionIndex = index;
                 }
+                if (section.getId() == MediaGroup.TYPE_HOME) {
+                    homeIndex = index;
+                }
                 getView().addSection(index++, section);
             } else {
                 getView().removeSection(section);
             }
+        }
+
+        if (mBootSectionIndex == -1) {
+            mBootSectionIndex = homeIndex;
         }
 
         // Refresh and restore last focus
