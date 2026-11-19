@@ -539,12 +539,19 @@ final class AppPages {
                     MobileSnackbar.show(context, R.string.mobile_settings_backup_done);
                 }));
 
-        rows.add(SettingsRow.action(context.getString(R.string.mobile_settings_restore),
-                restorePath != null ? context.getString(R.string.mobile_settings_restore_summary, shortPath(restorePath)) : null,
-                page -> {
-                    BackupSettingsPresenter.instance(page.requireContext()).restoreLocal();
-                    BackupSettingsPresenter.unhold();
-                }));
+        if (BackupRestore.needsPicker(context)) {
+            // The engine's restore only reads the app's own folder; the backup zip is in Documents.
+            rows.add(SettingsRow.action(context.getString(R.string.mobile_settings_restore),
+                    context.getString(R.string.mobile_settings_restore_pick_summary),
+                    SettingsPageFragment::pickBackupFile));
+        } else {
+            rows.add(SettingsRow.action(context.getString(R.string.mobile_settings_restore),
+                    restorePath != null ? context.getString(R.string.mobile_settings_restore_summary, shortPath(restorePath)) : null,
+                    page -> {
+                        BackupSettingsPresenter.instance(page.requireContext()).restoreLocal();
+                        BackupSettingsPresenter.unhold();
+                    }));
+        }
 
         rows.add(SettingsRow.<Integer>choice(context.getString(R.string.mobile_settings_auto_backup))
                 .option(context.getString(R.string.mobile_settings_auto_backup_off), -1)
