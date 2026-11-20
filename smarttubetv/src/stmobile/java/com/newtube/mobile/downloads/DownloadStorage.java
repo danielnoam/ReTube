@@ -58,7 +58,11 @@ final class DownloadStorage {
     }
 
     Target create(String fileName, boolean audioOnly) throws IOException {
-        String mime = audioOnly ? "audio/mp4" : "video/mp4";
+        return create(fileName, audioOnly, false);
+    }
+
+    Target create(String fileName, boolean audioOnly, boolean webm) throws IOException {
+        String mime = (audioOnly ? "audio/" : "video/") + (webm ? "webm" : "mp4");
 
         Uri tree = DownloadFolders.get(mContext, audioOnly);
         if (tree != null) {
@@ -123,16 +127,21 @@ final class DownloadStorage {
     }
 
     MediaMuxer openMuxer(Target target) throws IOException {
+        return openMuxer(target, false);
+    }
+
+    MediaMuxer openMuxer(Target target, boolean webm) throws IOException {
+        int format = webm ? MediaMuxer.OutputFormat.MUXER_OUTPUT_WEBM : MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4;
         if (target.pfd != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                return new MediaMuxer(target.pfd.getFileDescriptor(), MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+                return new MediaMuxer(target.pfd.getFileDescriptor(), format);
             }
             throw new IOException("descriptor muxing needs Android 8");
         }
         if (target.file == null) {
             throw new IOException("no output path");
         }
-        return new MediaMuxer(target.file.getAbsolutePath(), MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+        return new MediaMuxer(target.file.getAbsolutePath(), format);
     }
 
     /** Publishes the finished file. */

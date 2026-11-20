@@ -47,6 +47,59 @@ public class DownloadOptionsTest {
     }
 
     @Test
+    public void vp9RungsAboveTheTallestAvcComeAsWebmWithOpus() {
+        FakeMediaFormat opus = FakeMediaFormat.opus("251", 140_000, 6_000_000);
+        FakeMediaFormat vp9_1440 = FakeMediaFormat.vp9("271", 1440, 5_000_000, 300_000_000);
+        FakeMediaFormat vp9_2160 = FakeMediaFormat.vp9("313", 2160, 12_000_000, 700_000_000);
+        List<MediaFormat> adaptive = Arrays.asList(
+                FakeMediaFormat.video("137", 1080, 2_500_000, 120_000_000),
+                FakeMediaFormat.vp9("248", 1080, 2_000_000, 100_000_000),
+                vp9_1440, vp9_2160, opus, AAC);
+
+        List<DownloadOption> options = DownloadOptions.build(adaptive, null, true);
+
+        assertEquals(4, options.size());
+        assertSame(vp9_2160, options.get(0).video);
+        assertSame(opus, options.get(0).audio);
+        assertTrue(options.get(0).isWebm());
+        assertEquals(706_000_000L, options.get(0).totalBytes);
+        assertSame(vp9_1440, options.get(1).video);
+        assertEquals("1080p", options.get(2).qualityLabel);
+        assertFalse(options.get(2).isWebm());
+        assertTrue(options.get(3).isAudioOnly());
+        assertFalse(options.get(3).isWebm());
+    }
+
+    @Test
+    public void noWebmWithoutOpusHdrOrMuxerSupport() {
+        List<MediaFormat> noOpus = Arrays.asList(FakeMediaFormat.video("137", 1080, 2_500_000, 120_000_000),
+                FakeMediaFormat.vp9("271", 1440, 5_000_000, 300_000_000), AAC);
+        assertEquals(2, DownloadOptions.build(noOpus, null, true).size());
+
+        FakeMediaFormat hdr = new FakeMediaFormat("337", "video/webm; codecs=\"vp09.02.51.10.01.09.16.09.00\"",
+                2160, 20_000_000, 900_000_000);
+        FakeMediaFormat hdrLabel = FakeMediaFormat.vp9("336", 1440, 9_000_000, 400_000_000).label("1440p60 HDR");
+        List<MediaFormat> hdrOnly = Arrays.asList(FakeMediaFormat.video("137", 1080, 2_500_000, 120_000_000),
+                hdr, hdrLabel, FakeMediaFormat.opus("251", 140_000, 6_000_000), AAC);
+        assertEquals(2, DownloadOptions.build(hdrOnly, null, true).size());
+
+        List<MediaFormat> sdr = Arrays.asList(FakeMediaFormat.video("137", 1080, 2_500_000, 120_000_000),
+                FakeMediaFormat.vp9("271", 1440, 5_000_000, 300_000_000), FakeMediaFormat.opus("251", 140_000, 6_000_000), AAC);
+        assertEquals(2, DownloadOptions.build(sdr, null, false).size());
+    }
+
+    @Test
+    public void theOpusTrackIsTheSameLanguageAsTheAacPick() {
+        FakeMediaFormat aac = FakeMediaFormat.audio("140", 129_000, 5_000_000).track("en.4").lang("en (original)");
+        FakeMediaFormat opusDub = FakeMediaFormat.opus("251", 150_000, 6_000_000).track("de-DE.10").lang("de (dubbed-auto)");
+        FakeMediaFormat opusOriginal = FakeMediaFormat.opus("251", 140_000, 6_000_000).track("en.4").lang("en (original)");
+        List<MediaFormat> adaptive = Arrays.asList(FakeMediaFormat.video("137", 1080, 2_500_000, 120_000_000),
+                FakeMediaFormat.vp9("271", 1440, 5_000_000, 300_000_000), opusDub, opusOriginal, aac);
+
+        assertSame(opusOriginal, DownloadOptions.build(adaptive, null, true).get(0).audio);
+    }
+
+    @Test
     public void sameHeightKeepsTheHigherBitrateVariant() {
         FakeMediaFormat p60 = FakeMediaFormat.video("299", 1080, 4_000_000, 200_000_000).label("1080p60");
         List<MediaFormat> adaptive = Arrays.asList(

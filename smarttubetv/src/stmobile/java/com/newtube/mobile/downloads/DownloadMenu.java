@@ -86,7 +86,7 @@ public final class DownloadMenu {
             return;
         }
         Intent intent = new Intent(Intent.ACTION_SEND)
-                .setType(item.isAudioOnly() ? "audio/mp4" : "video/mp4")
+                .setType((item.isAudioOnly() ? "audio/" : "video/") + (item.webm ? "webm" : "mp4"))
                 .putExtra(Intent.EXTRA_STREAM, uri)
                 .putExtra(Intent.EXTRA_SUBJECT, item.title)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

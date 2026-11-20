@@ -2,6 +2,7 @@ package com.newtube.mobile.downloads;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -77,7 +78,9 @@ public final class DownloadPicker {
                         callback.onChoice(null, info != null ? info.getPlayabilityReason() : null);
                         return;
                     }
-                    List<DownloadOption> options = DownloadOptions.build(info.getAdaptiveFormats(), info.getUrlFormats());
+                    // MediaMuxer's WebM writer takes Opus from Android 10.
+                    List<DownloadOption> options = DownloadOptions.build(info.getAdaptiveFormats(), info.getUrlFormats(),
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
                     callback.onChoice(options.isEmpty() ? null : new Choice(context, video, info, options), null);
                 }, error -> callback.onChoice(null, null));
     }
@@ -147,7 +150,7 @@ public final class DownloadPicker {
         }
 
         String description(DownloadOption option) {
-            String format = option.isAudioOnly() ? "M4A" : "MP4";
+            String format = option.isWebm() ? "WEBM" : option.isAudioOnly() ? "M4A" : "MP4";
             String size = DownloadOptions.formatBytes(option.totalBytes);
             String description = size.isEmpty() ? format : format + MetaSeparator.DOT + size;
             if (alreadyHere(option)) {

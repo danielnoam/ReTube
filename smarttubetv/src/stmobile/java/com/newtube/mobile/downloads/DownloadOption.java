@@ -38,6 +38,11 @@ public final class DownloadOption {
         return kind == KIND_AUDIO;
     }
 
+    /** VP9 and/or Opus: written as a WebM instead of an MP4/M4A. */
+    public boolean isWebm() {
+        return DownloadOptions.isWebm(video, audio);
+    }
+
     /** A progressive stream: one file that already carries both tracks. */
     public boolean isProgressive() {
         return kind == KIND_VIDEO && audio == null;
