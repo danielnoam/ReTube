@@ -52,6 +52,11 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" tools:node="remove" />
     <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" tools:node="remove" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" tools:node="remove" />
+    <!-- Privacy: the TV "start on boot" hook (RemoteControlReceiver, removed below) woke the app on
+         every boot, screen-on, time change and charger plug-in to start the TV remote-control
+         listener, which the phone forces off (MobileMainApplication "tv_receiver_roles_off").
+         RECEIVE_BOOT_COMPLETED stays: WorkManager needs it to re-arm scheduled backups after a reboot. -->
+    <uses-permission android:name="android.permission.QUICKBOOT_POWERON" tools:node="remove" />
 
     <!-- The in-app updater hands its APK straight to Android's installer (AppUpdates.systemInstaller):
          from Android 11 these queries make the installers visible, so apps that also open APK files
@@ -109,6 +114,10 @@
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|layoutDirection|uiMode"
             android:theme="@style/Theme.NewTube"
             tools:replace="android:launchMode,android:configChanges" />
+
+        <receiver
+            android:name="com.liskovsoft.smartyoutubetv2.common.misc.RemoteControlReceiver"
+            tools:node="remove" />
 
         <activity
             android:name="com.newtube.mobile.ui.browse.MobileBrowseActivity"

@@ -19,9 +19,11 @@ screen in `ui/settings/`: a new setting is a row there (design and per-row audit
 
 ## Repos & commit order
 - Main: `origin` = github.com/aleixrodriala/newtube, branch `main`.
-- Submodules `MediaServiceCore` and `SharedModules` are **our forks**:
-  `origin` = aleixrodriala/<name> (HTTPS — SSH keys are not set up on this
-  Mac), `upstream` = yuliskov/<name>, branch `master`. Commit INSIDE the
+- Submodules `MediaServiceCore` and `SharedModules` are **forks**:
+  `MediaServiceCore` points at danielnoam/MediaServiceCore (ReTube's own fork,
+  since the 2026-11-20 privacy fixes), `SharedModules` still at
+  aleixrodriala/SharedModules (HTTPS — SSH keys are not set up on this
+  Mac); `upstream` = yuliskov/<name>, branch `master`. Commit INSIDE the
   submodule first, push `origin master`, then commit the pointer bump in main.
 - Upstream (yuliskov) fixes are merged into the **submodule forks only**; the
   main repo never merges upstream (TV code is gone). Submodules have repo-local

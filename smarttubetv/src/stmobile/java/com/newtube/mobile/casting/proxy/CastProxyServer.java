@@ -11,6 +11,7 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
+import java.security.SecureRandom;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -44,11 +45,12 @@ import okhttp3.Response;
  *       Accept-Ranges mirror back verbatim; bodies stream through a fixed buffer.</li>
  * </ul>
  *
- * <p>Security: the server is deliberately unauthenticated on the LAN - a Chromecast cannot present
- * credentials. Exposure is bounded: it only ever serves the manifest of the video currently being
- * cast, and only relays URLs that were already handed out inside that manifest; tokens are opaque
- * but not secrets. To keep it from becoming an open relay, {@code /seg} refuses any decoded URL
- * whose host is not *.googlevideo.com / *.youtube.com.</p>
+ * <p>Security: a Chromecast cannot present credentials, so the credential is the URL itself. Every
+ * path sits under a random secret ({@code /<secret>/manifest.mpd}, {@code /<secret>/seg/...}),
+ * minted on each {@link #start()} and handed out only inside the Cast LOAD request and the manifest;
+ * anything else on the LAN gets 404, so a peer on the same Wi-Fi can neither see what is being
+ * cast nor relay through the phone. Segment tokens are opaque but not secrets. As a second fence,
+ * {@code /seg} refuses any decoded URL whose host is not *.googlevideo.com / *.youtube.com.</p>
  *
  * <p>Single-slot rule (CLAUDE.md): {@link #loadVideo(byte[])} swaps only the manifest reference.
  * In-flight {@code /seg} relays for the PREVIOUS video keep working across the swap because
@@ -104,6 +106,8 @@ public class CastProxyServer {
     private final AtomicInteger mThreadIndex = new AtomicInteger();
 
     private volatile ServerSocket mServerSocket;
+    /** The path secret of the current run; see the class javadoc. */
+    private volatile String mSecret;
     private volatile ExecutorService mPool;
     private volatile Thread mAcceptThread;
     private volatile boolean mStopped;
@@ -136,6 +140,7 @@ public class CastProxyServer {
             return mServerSocket.getLocalPort();
         }
         mStopped = false;
+        mSecret = newSecret();
         mServerSocket = new ServerSocket(0);
         mPool = Executors.newFixedThreadPool(POOL_SIZE, runnable -> {
             Thread thread = new Thread(runnable, "CastProxyWorker-" + mThreadIndex.incrementAndGet());
@@ -170,6 +175,7 @@ public class CastProxyServer {
         mOpenSockets.clear();
         mAcceptThread = null;
         mManifest = null;
+        mSecret = null;
         ProxyLog.d(TAG, "stopped");
     }
 
@@ -188,12 +194,33 @@ public class CastProxyServer {
         return serverSocket != null ? serverSocket.getLocalPort() : -1;
     }
 
-    /** Base URL for {@link MpdRewriter}, e.g. {@code http://192.168.1.23:40123}. Null off-wifi/stopped. */
+    /**
+     * Base URL for {@link MpdRewriter}, e.g. {@code http://192.168.1.23:40123/<secret>}. Null
+     * off-wifi/stopped.
+     */
     @Nullable
     public String getBaseUrl() {
         String ip = getLocalIpv4();
         int port = getPort();
-        return ip != null && port > 0 ? "http://" + ip + ":" + port : null;
+        String prefix = getPathPrefix();
+        return ip != null && port > 0 && prefix != null ? "http://" + ip + ":" + port + prefix : null;
+    }
+
+    /** {@code /<secret>}, the start of every path this run serves. Null when not started. */
+    @Nullable
+    String getPathPrefix() {
+        String secret = mSecret;
+        return secret != null ? "/" + secret : null;
+    }
+
+    private static String newSecret() {
+        byte[] bytes = new byte[16];
+        new SecureRandom().nextBytes(bytes);
+        StringBuilder hex = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            hex.append(String.format("%02x", b));
+        }
+        return hex.toString();
     }
 
     /** The URL to hand to the Cast LOAD request. Null when not started or no wifi IPv4. */
@@ -292,6 +319,12 @@ public class CastProxyServer {
 
             int query = target.indexOf('?');
             String path = query >= 0 ? target.substring(0, query) : target;
+            String prefix = getPathPrefix();
+            if (prefix == null || !path.startsWith(prefix + "/")) {
+                writeSimpleResponse(out, 404, "unknown path");
+                return;
+            }
+            path = path.substring(prefix.length());
             ProxyLog.d(TAG, "request: " + method + " " + path);
 
             // CORS preflight: the Default Media Receiver is an https gstatic-origin page doing

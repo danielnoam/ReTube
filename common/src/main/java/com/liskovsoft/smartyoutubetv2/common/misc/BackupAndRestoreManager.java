@@ -224,6 +224,7 @@ public class BackupAndRestoreManager implements MotherActivity.OnPermissions {
         FileHelpers.copy(sharedPrefsBackupDir, mSharedPrefsDir);
         FileHelpers.copy(filesBackupDir, mFilesDir);
         fixFileNames(mSharedPrefsDir);
+        RestoredIdentity.markRestored(mContext);
 
         MessageHelpers.showMessage(mContext, R.string.msg_done);
 

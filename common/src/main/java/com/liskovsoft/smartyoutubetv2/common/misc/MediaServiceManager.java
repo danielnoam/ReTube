@@ -526,6 +526,12 @@ public class MediaServiceManager implements OnAccountChange {
             return;
         }
 
+        // RETUBE(privacy): watch-time pings only feed a signed-in account's history. Signed out they
+        // would tie everything watched to the persistent anonymous visitor id.
+        if (!mSignInService.isSigned()) {
+            return;
+        }
+
         RxHelper.disposeActions(mHistoryAction);
 
         Observable<Void> historyObservable;
