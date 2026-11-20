@@ -167,6 +167,10 @@ public class MobileMainApplication extends MainApplication {
         // global exception handler and every other View->Activity mapping.
         super.onCreate();
 
+        // PRIVACY: data restored from a backup or a phone transfer gets a fresh anonymous YouTube
+        // identity before the media service first uses the old one (RestoredIdentity).
+        com.liskovsoft.smartyoutubetv2.common.misc.RestoredIdentity.resetIfRestored(this);
+
         // Release-visible launch milestones + the "first frame drawn" hook used below.
         LaunchMilestones.install(this);
 

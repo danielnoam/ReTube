@@ -26,6 +26,7 @@ import okhttp3.OkHttpClient;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -72,6 +73,26 @@ public class CastProxyServerTest {
         byte[] second = "<MPD>two</MPD>".getBytes(StandardCharsets.UTF_8);
         mServer.loadVideo(second);
         assertArrayEquals(second, request("GET", "/manifest.mpd", null).body);
+    }
+
+    @Test
+    public void pathsWithoutTheSecretAre404() throws IOException {
+        mServer.loadVideo("<MPD>one</MPD>".getBytes(StandardCharsets.UTF_8));
+        HttpURLConnection conn =
+                (HttpURLConnection) new URL("http://127.0.0.1:" + mPort + "/manifest.mpd").openConnection();
+        conn.setRequestProperty("Connection", "close");
+        assertEquals(404, conn.getResponseCode());
+        conn.disconnect();
+        assertEquals(200, request("GET", "/manifest.mpd", null).code);
+    }
+
+    @Test
+    public void secretChangesOnRestart() throws IOException {
+        String first = mServer.getPathPrefix();
+        mServer.stop();
+        mPort = mServer.start();
+        assertNotEquals(first, mServer.getPathPrefix());
+        assertEquals(33, mServer.getPathPrefix().length());
     }
 
     @Test
@@ -231,7 +252,7 @@ public class CastProxyServerTest {
 
     private Http request(String method, String path, Map<String, String> headers) throws IOException {
         HttpURLConnection conn =
-                (HttpURLConnection) new URL("http://127.0.0.1:" + mPort + path).openConnection();
+                (HttpURLConnection) new URL("http://127.0.0.1:" + mPort + mServer.getPathPrefix() + path).openConnection();
         conn.setRequestMethod(method);
         conn.setConnectTimeout(5_000);
         conn.setReadTimeout(5_000);

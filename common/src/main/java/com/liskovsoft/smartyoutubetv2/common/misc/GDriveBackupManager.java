@@ -185,6 +185,8 @@ public class GDriveBackupManager {
                                 .blockingSubscribe(inputStream -> FileHelpers.copy(inputStream, new File(mSharedPrefs, fixAltPackageName(name))));
                     }
 
+                    RestoredIdentity.markRestored(mContext);
+
                     // NOTE: Don't restart the app, just kill. The reboot will broke the files.
                     // To apply settings we need to kill the app
                     new Handler(mContext.getMainLooper()).postDelayed(() -> Runtime.getRuntime().exit(0), 1_000);
@@ -217,6 +219,8 @@ public class GDriveBackupManager {
                         ZipHelper.unzipToFolder(zipFile, sharedPrefs);
                     }
                     fixFileNames(sharedPrefs);
+
+                    RestoredIdentity.markRestored(mContext);
 
                     // NOTE: Don't restart the app, just kill. The reboot will broke the files.
                     // To apply settings we need to kill the app
