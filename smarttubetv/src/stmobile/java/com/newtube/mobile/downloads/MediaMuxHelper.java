@@ -39,7 +39,9 @@ final class MediaMuxHelper {
     static long mux(@Nullable File videoPart, @Nullable File audioPart, MediaMuxer muxer, Progress progress)
             throws IOException {
         Track video = videoPart != null ? Track.open(videoPart, "video/", VIDEO_BUFFER_BYTES) : null;
-        Track audio = audioPart != null ? Track.open(audioPart, "audio/", AUDIO_BUFFER_BYTES) : null;
+        // A progressive stream (no separate audio part) carries its audio in the same file.
+        Track audio = audioPart != null ? Track.open(audioPart, "audio/", AUDIO_BUFFER_BYTES)
+                : videoPart != null ? Track.openOptional(videoPart, "audio/", AUDIO_BUFFER_BYTES) : null;
 
         if (video == null && audio == null) {
             throw new IOException("no tracks to mux");
@@ -136,6 +138,15 @@ final class MediaMuxHelper {
             }
             extractor.release();
             throw new IOException("no " + mimePrefix + "* track in " + file.getName());
+        }
+
+        @Nullable
+        static Track openOptional(File file, String mimePrefix, int bufferBytes) {
+            try {
+                return open(file, mimePrefix, bufferBytes);
+            } catch (IOException e) {
+                return null;
+            }
         }
 
         long durationUs() {

@@ -39,6 +39,8 @@ public final class DownloadItem {
      */
     @Nullable public volatile String audioTrack;
     public final long createdAt;
+    /** The output is a WebM (VP9 + Opus, above the H.264 rungs) rather than an MP4/M4A. */
+    public volatile boolean webm;
 
     public volatile int state = STATE_QUEUED;
     public volatile long bytesDone;
@@ -85,6 +87,7 @@ public final class DownloadItem {
         item.videoLength = DownloadOptions.lengthOf(option.video);
         item.audioLength = DownloadOptions.lengthOf(option.audio);
         item.bytesTotal = option.totalBytes;
+        item.webm = option.isWebm();
         return item;
     }
 
@@ -126,6 +129,7 @@ public final class DownloadItem {
         json.putOpt("audioItag", audioItag);
         json.putOpt("audioTrack", audioTrack);
         json.put("createdAt", createdAt);
+        json.put("webm", webm);
         json.put("state", state);
         json.put("bytesDone", bytesDone);
         json.put("bytesTotal", bytesTotal);
@@ -144,6 +148,7 @@ public final class DownloadItem {
                 optString(json, "qualityLabel"), optString(json, "videoItag"), optString(json, "audioItag"),
                 json.optLong("createdAt", 0));
         item.audioTrack = optString(json, "audioTrack");
+        item.webm = json.optBoolean("webm", false);
         item.state = json.optInt("state", STATE_FAILED);
         item.bytesDone = json.optLong("bytesDone", 0);
         item.bytesTotal = json.optLong("bytesTotal", -1);

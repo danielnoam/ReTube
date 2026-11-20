@@ -293,16 +293,19 @@ final class DownloadJob {
         mRegistry.notifyChanged();
         mListener.onProgress(mItem);
 
-        String fileName = DownloadOptions.fileNameFor(mItem.title, mItem.videoId, mItem.isAudioOnly() ? "m4a" : "mp4");
-        DownloadStorage.Target target = mStorage.create(fileName, mItem.isAudioOnly());
+        String extension = mItem.webm ? "webm" : mItem.isAudioOnly() ? "m4a" : "mp4";
+        String fileName = DownloadOptions.fileNameFor(mItem.title, mItem.videoId, extension);
+        DownloadStorage.Target target = mStorage.create(fileName, mItem.isAudioOnly(), mItem.webm);
         MediaMuxer muxer = null;
         try {
-            muxer = mStorage.openMuxer(target);
+            muxer = mStorage.openMuxer(target, mItem.webm);
             long durationMs = MediaMuxHelper.mux(videoPart, audioPart, muxer,
                     (timeUs, durationUs) -> !mItem.cancelRequested);
             muxer.release();
             muxer = null;
-            writeTags(target);
+            if (!mItem.webm) {
+                writeTags(target);
+            }
             mStorage.commit(target);
             mItem.durationMs = durationMs;
             mItem.outputUri = target.uri.toString();

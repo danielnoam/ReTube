@@ -17,15 +17,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Predicate;
 
 /**
  * Picks what the downloader can turn into a plain playable file, from the format lists the
  * player already resolved. Pure Java (no Android types) so the selection rules are unit-tested.
  *
- * <p>Only H.264 video and AAC audio are offered: {@code MediaMuxer} writes MP4, every phone
- * decodes them, and YouTube serves both for every video up to 1080p. VP9/AV1 rungs (1440p+)
- * would need a WebM muxer and are left out. When a video has no separate H.264 track at all
- * (rare), the progressive muxed streams (itag 18/22) are offered instead - those need no muxing.
+ * <p>H.264 video and AAC audio make an MP4: every phone decodes them, and YouTube serves both
+ * for every video up to 1080p. Above the tallest H.264 rung (1440p, 4K), where YouTube only
+ * serves VP9 and AV1, SDR VP9 is offered with Opus audio in a WebM, which {@code MediaMuxer}
+ * also writes ({@code webm} = Android 10+). AV1 and HDR rungs are left out: many phones can't
+ * decode them. When a video has no separate H.264 track at all (rare), the progressive muxed
+ * streams (itag 18/22) are offered instead - those need no muxing.
  */
 public final class DownloadOptions {
     private DownloadOptions() {
@@ -33,10 +36,30 @@ public final class DownloadOptions {
 
     public static List<DownloadOption> build(@Nullable List<MediaFormat> adaptiveFormats,
                                              @Nullable List<MediaFormat> urlFormats) {
+        return build(adaptiveFormats, urlFormats, false);
+    }
+
+    public static List<DownloadOption> build(@Nullable List<MediaFormat> adaptiveFormats,
+                                             @Nullable List<MediaFormat> urlFormats, boolean webm) {
         List<DownloadOption> result = new ArrayList<>();
 
         MediaFormat audio = pickAudio(adaptiveFormats);
         Map<Integer, MediaFormat> videoByHeight = pickVideoRungs(adaptiveFormats);
+
+        if (webm && audio != null && !videoByHeight.isEmpty()) {
+            int tallestAvc = videoByHeight.keySet().iterator().next();
+            // The same language as the AAC pick: the Opus track of the same variant.
+            MediaFormat opus = pickAudio(adaptiveFormats, null, audioTrackKey(audio), DownloadOptions::isOpusAudio);
+            if (opus != null) {
+                for (Map.Entry<Integer, MediaFormat> entry : pickVp9Rungs(adaptiveFormats).entrySet()) {
+                    if (entry.getKey() > tallestAvc) {
+                        MediaFormat video = entry.getValue();
+                        result.add(new DownloadOption(DownloadOption.KIND_VIDEO, labelOf(video, entry.getKey()),
+                                entry.getKey(), video, opus, sumLengths(video, opus)));
+                    }
+                }
+            }
+        }
 
         if (audio != null && !videoByHeight.isEmpty()) {
             for (Map.Entry<Integer, MediaFormat> entry : videoByHeight.entrySet()) {
@@ -83,6 +106,13 @@ public final class DownloadOptions {
     @Nullable
     static MediaFormat pickAudio(@Nullable List<MediaFormat> formats, @Nullable String itag,
                                  @Nullable String wantedTrack) {
+        return pickAudio(formats, itag, wantedTrack, DownloadOptions::isAacAudio);
+    }
+
+    /** {@link #pickAudio(List, String, String)} for the codec {@code codec} accepts when no itag is given. */
+    @Nullable
+    static MediaFormat pickAudio(@Nullable List<MediaFormat> formats, @Nullable String itag,
+                                 @Nullable String wantedTrack, Predicate<MediaFormat> codec) {
         if (formats == null) {
             return null;
         }
@@ -94,7 +124,7 @@ public final class DownloadOptions {
             if (format.getUrl() == null || format.isDrc()) {
                 continue;
             }
-            if (itag != null ? !itag.equals(format.getITag()) : !isAacAudio(format)) {
+            if (itag != null ? !itag.equals(format.getITag()) : !codec.test(format)) {
                 continue;
             }
 
@@ -134,6 +164,28 @@ public final class DownloadOptions {
         return byHeight;
     }
 
+    /** Highest-bitrate SDR VP9 track per height, tallest first. */
+    static Map<Integer, MediaFormat> pickVp9Rungs(@Nullable List<MediaFormat> formats) {
+        TreeMap<Integer, MediaFormat> byHeight = new TreeMap<>(Collections.reverseOrder());
+
+        if (formats == null) {
+            return byHeight;
+        }
+
+        for (MediaFormat format : formats) {
+            if (!isSdrVp9Video(format) || format.getHeight() <= 0 || format.isOtf()) {
+                continue;
+            }
+
+            MediaFormat current = byHeight.get(format.getHeight());
+            if (current == null || bitrateOf(format) > bitrateOf(current)) {
+                byHeight.put(format.getHeight(), format);
+            }
+        }
+
+        return byHeight;
+    }
+
     static List<MediaFormat> pickProgressive(@Nullable List<MediaFormat> formats) {
         List<MediaFormat> result = new ArrayList<>();
 
@@ -159,6 +211,23 @@ public final class DownloadOptions {
     static boolean isAvcVideo(MediaFormat format) {
         return format.getUrl() != null && mimeStartsWith(format, "video/mp4")
                 && mimeContains(format, "avc1");
+    }
+
+    /** {@code codecs="vp9"}; HDR is {@code vp09.02...} (10-bit profile 2) and is left out. */
+    static boolean isSdrVp9Video(MediaFormat format) {
+        String label = format.getQualityLabel();
+        return format.getUrl() != null && mimeStartsWith(format, "video/webm")
+                && (mimeContains(format, "vp9") || mimeContains(format, "vp09.00"))
+                && (label == null || !label.toUpperCase(Locale.US).contains("HDR"));
+    }
+
+    static boolean isOpusAudio(MediaFormat format) {
+        return format.getUrl() != null && mimeStartsWith(format, "audio/webm") && mimeContains(format, "opus");
+    }
+
+    /** Whether a download of these formats is a WebM (VP9 or Opus) rather than an MP4. */
+    static boolean isWebm(@Nullable MediaFormat video, @Nullable MediaFormat audio) {
+        return (video != null && mimeStartsWith(video, "video/webm")) || (audio != null && mimeStartsWith(audio, "audio/webm"));
     }
 
     static boolean isAacAudio(MediaFormat format) {
