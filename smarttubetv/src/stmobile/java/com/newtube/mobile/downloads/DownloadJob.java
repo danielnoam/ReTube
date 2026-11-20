@@ -9,6 +9,8 @@ import androidx.annotation.Nullable;
 
 import com.liskovsoft.mediaserviceinterfaces.data.MediaFormat;
 import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo;
+import com.liskovsoft.mediaserviceinterfaces.data.SponsorSegment;
+import com.liskovsoft.smartyoutubetv2.common.prefs.SponsorBlockData;
 import com.liskovsoft.smartyoutubetv2.common.misc.NetPath;
 import com.liskovsoft.youtubeapi.service.YouTubeMediaItemService;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
@@ -19,7 +21,10 @@ import com.newtube.mobile.player.Media3SourceFactory;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Runs one {@link DownloadItem} to completion on the service's worker thread: fetch the parts,
@@ -298,7 +303,7 @@ final class DownloadJob {
         MediaMuxer muxer = null;
         try {
             muxer = mStorage.openMuxer(target);
-            long durationMs = MediaMuxHelper.mux(videoPart, audioPart, muxer,
+            long durationMs = MediaMuxHelper.mux(videoPart, audioPart, muxer, sponsorCuts(),
                     (timeUs, durationUs) -> !mItem.cancelRequested);
             muxer.release();
             muxer = null;
@@ -325,6 +330,50 @@ final class DownloadJob {
             }
             throw e instanceof IOException ? (IOException) e : new IOException("mux failed", e);
         }
+    }
+
+    /**
+     * The segments the player would skip (the categories set to skip, or to ask, in SponsorBlock
+     * settings), when Settings > Downloads asks for them to be cut. No answer from SponsorBlock
+     * means an uncut file, never a failed download.
+     */
+    private SponsorCuts sponsorCuts() {
+        if (!DownloadPrefs.isCutSponsorsEnabled(mContext)) {
+            return SponsorCuts.NONE;
+        }
+        SponsorBlockData data = SponsorBlockData.instance(mContext);
+        if (!data.isSponsorBlockEnabled()) {
+            return SponsorCuts.NONE;
+        }
+        Set<String> categories = new HashSet<>();
+        for (String category : data.getAllCategories()) {
+            int action = data.getAction(category);
+            if (!SponsorSegment.CATEGORY_POI_HIGHLIGHT.equals(category)
+                    && action != SponsorBlockData.ACTION_DO_NOTHING && action != SponsorBlockData.ACTION_UNDEFINED) {
+                categories.add(category);
+            }
+        }
+        if (categories.isEmpty()) {
+            return SponsorCuts.NONE;
+        }
+        List<SponsorSegment> segments;
+        try {
+            segments = YouTubeMediaItemService.instance().getSponsorSegmentsObserve(mItem.videoId, categories).blockingFirst();
+        } catch (RuntimeException e) {
+            NetPath.log("download sponsor-cuts video=" + mItem.videoId + " none (" + e.getMessage() + ")");
+            return SponsorCuts.NONE;
+        }
+        List<long[]> ranges = new ArrayList<>();
+        if (segments != null) {
+            for (SponsorSegment segment : segments) {
+                if (SponsorSegment.ACTION_SKIP.equals(segment.getAction()) && categories.contains(segment.getCategory())) {
+                    ranges.add(new long[]{segment.getStartMs() * 1000, segment.getEndMs() * 1000});
+                }
+            }
+        }
+        SponsorCuts cuts = SponsorCuts.of(ranges);
+        NetPath.log("download sponsor-cuts video=" + mItem.videoId + " segments=" + ranges.size() + " cuts=" + cuts.count());
+        return cuts;
     }
 
     /**
