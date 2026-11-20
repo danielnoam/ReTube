@@ -2,6 +2,7 @@ package com.newtube.mobile.downloads;
 
 import android.content.Context;
 import android.media.MediaMuxer;
+import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -16,6 +17,7 @@ import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.newtube.mobile.player.Media3SourceFactory;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.List;
 
@@ -300,6 +302,7 @@ final class DownloadJob {
                     (timeUs, durationUs) -> !mItem.cancelRequested);
             muxer.release();
             muxer = null;
+            writeTags(target);
             mStorage.commit(target);
             mItem.durationMs = durationMs;
             mItem.outputUri = target.uri.toString();
@@ -321,6 +324,63 @@ final class DownloadJob {
                 throw new StreamFetcher.CancelledException();
             }
             throw e instanceof IOException ? (IOException) e : new IOException("mux failed", e);
+        }
+    }
+
+    /**
+     * Title, channel, link and cover into the finished file, before it is published (the media
+     * scan that runs on publish is what reads them). A file that can't be tagged is still a good
+     * file, so nothing here fails the download.
+     */
+    private void writeTags(DownloadStorage.Target target) {
+        Mp4Tags.Tags tags = new Mp4Tags.Tags();
+        tags.title = mItem.title;
+        tags.artist = mItem.author;
+        tags.album = mItem.isAudioOnly() ? mItem.title : null;
+        tags.comment = "https://youtu.be/" + mItem.videoId;
+        tags.cover = coverBytes();
+
+        ParcelFileDescriptor opened = null;
+        try {
+            FileDescriptor fd;
+            if (target.pfd != null) {
+                fd = target.pfd.getFileDescriptor();
+            } else if (target.file != null) {
+                opened = ParcelFileDescriptor.open(target.file, ParcelFileDescriptor.MODE_READ_WRITE);
+                fd = opened.getFileDescriptor();
+            } else {
+                return;
+            }
+            boolean written = Mp4Tags.apply(new FdRandomAccess(fd), tags);
+            NetPath.log("download tags video=" + mItem.videoId + " written=" + written
+                    + " cover=" + (tags.cover != null ? tags.cover.length : 0));
+        } catch (IOException | RuntimeException e) {
+            Log.w(TAG, "tagging failed, keeping the untagged file: " + e);
+        } finally {
+            if (opened != null) {
+                try {
+                    opened.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
+
+    /** The 1280x720 thumbnail when the video has one, else the card thumbnail already fetched. */
+    @Nullable
+    private byte[] coverBytes() {
+        File maxRes = new File(DownloadRegistry.partsDir(mContext), mItem.id + ".cover.jpg");
+        try {
+            byte[] cover = CoverArt.encode(mFetcher.fetchSmall(CoverArt.maxResUrl(mItem.videoId), maxRes),
+                    mItem.isAudioOnly());
+            if (cover == null) {
+                cover = CoverArt.encode(mItem.thumbPath != null ? new File(mItem.thumbPath) : null,
+                        mItem.isAudioOnly());
+            }
+            return cover;
+        } finally {
+            //noinspection ResultOfMethodCallIgnored
+            maxRes.delete();
         }
     }
 
