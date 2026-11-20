@@ -63,6 +63,8 @@
     <string name="mobile_settings_24_hour">Use 24-hour time</string>
     <string name="mobile_settings_24_hour_summary">For the start times of premieres and live streams</string>
     <string name="mobile_settings_downloads_header">Downloads</string>
+    <string name="mobile_settings_download_cut_sponsors">Cut SponsorBlock segments</string>
+    <string name="mobile_settings_download_cut_sponsors_summary">Leaves out the parts SponsorBlock skips in the player, such as sponsors and intros. In videos the cut lands on the nearest keyframe inside the segment, so a second or two of it can remain.</string>
     <string name="mobile_settings_download_folder_video">Video folder</string>
     <string name="mobile_settings_download_folder_audio">Audio folder</string>
     <string name="mobile_settings_download_folder_default">%1$s (default)</string>

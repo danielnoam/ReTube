@@ -10,6 +10,7 @@ import androidx.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /**
  * Joins a DASH video part and a DASH audio part into one ordinary MP4 without re-encoding, by
@@ -38,6 +39,19 @@ final class MediaMuxHelper {
      */
     static long mux(@Nullable File videoPart, @Nullable File audioPart, MediaMuxer muxer, Progress progress)
             throws IOException {
+        return mux(videoPart, audioPart, muxer, SponsorCuts.NONE, progress);
+    }
+
+    /**
+     * @param cuts time ranges to leave out; with a video track they are first shrunk to its
+     *             keyframes ({@link SponsorCuts#snappedTo}) and applied to both tracks alike
+     * @return the media duration in ms (less what was cut) when the tracks report it, else 0
+     */
+    static long mux(@Nullable File videoPart, @Nullable File audioPart, MediaMuxer muxer, SponsorCuts cuts,
+                    Progress progress) throws IOException {
+        if (!cuts.isEmpty() && videoPart != null) {
+            cuts = cuts.snappedTo(keyframesOf(videoPart));
+        }
         Track video = videoPart != null ? Track.open(videoPart, "video/", VIDEO_BUFFER_BYTES) : null;
         // A progressive stream (no separate audio part) carries its audio in the same file.
         Track audio = audioPart != null ? Track.open(audioPart, "audio/", AUDIO_BUFFER_BYTES)
@@ -58,6 +72,8 @@ final class MediaMuxHelper {
                 durationUs = Math.max(durationUs, audio.durationUs());
             }
 
+            video = applyCuts(video, cuts);
+            audio = applyCuts(audio, cuts);
             muxer.start();
 
             MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
@@ -80,7 +96,7 @@ final class MediaMuxHelper {
             }
 
             muxer.stop();
-            return durationUs / 1000;
+            return Math.max(0, durationUs - cuts.totalUs()) / 1000;
         } finally {
             if (video != null) {
                 video.release();
@@ -88,6 +104,37 @@ final class MediaMuxHelper {
             if (audio != null) {
                 audio.release();
             }
+        }
+    }
+
+    @Nullable
+    private static Track applyCuts(@Nullable Track track, SponsorCuts cuts) {
+        if (track != null) {
+            track.cuts = cuts;
+        }
+        return track;
+    }
+
+    /** Presentation times of the video's sync samples, read without their data. */
+    private static long[] keyframesOf(File videoPart) throws IOException {
+        Track track = Track.open(videoPart, "video/", 0);
+        try {
+            long[] times = new long[256];
+            int count = 0;
+            while (track.extractor.getSampleTime() >= 0) {
+                if ((track.extractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0) {
+                    if (count == times.length) {
+                        times = Arrays.copyOf(times, count * 2);
+                    }
+                    times[count++] = track.extractor.getSampleTime();
+                }
+                if (!track.extractor.advance()) {
+                    break;
+                }
+            }
+            return Arrays.copyOf(times, count);
+        } finally {
+            track.release();
         }
     }
 
@@ -109,13 +156,19 @@ final class MediaMuxHelper {
         final MediaExtractor extractor;
         final MediaFormat format;
         final ByteBuffer buffer;
+        final boolean isVideo;
         int muxerTrack = -1;
         boolean finished;
+        SponsorCuts cuts = SponsorCuts.NONE;
+        /** Whether the samples since the last sync sample are being left out. */
+        private boolean mDropping;
 
         private Track(MediaExtractor extractor, MediaFormat format, int bufferBytes) {
             this.extractor = extractor;
             this.format = format;
             this.buffer = ByteBuffer.allocateDirect(bufferBytes);
+            String mime = format.getString(MediaFormat.KEY_MIME);
+            this.isVideo = mime != null && mime.startsWith("video/");
         }
 
         static Track open(File file, String mimePrefix, int bufferBytes) throws IOException {
@@ -153,8 +206,27 @@ final class MediaMuxHelper {
             return format.containsKey(MediaFormat.KEY_DURATION) ? format.getLong(MediaFormat.KEY_DURATION) : 0;
         }
 
-        /** @return false when the track is exhausted */
+        /**
+         * Writes the next sample, or skips it when it falls in a cut. A video sample follows its
+         * sync sample's fate (the cuts start and end on sync samples), so a dependent frame is
+         * never kept without the frame it is decoded from.
+         *
+         * @return false when the track is exhausted
+         */
         boolean writeSample(MediaMuxer muxer, MediaCodec.BufferInfo info) {
+            long timeUs = extractor.getSampleTime();
+            if (timeUs < 0) {
+                return false;
+            }
+            boolean sync = (extractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0;
+            if (sync || !isVideo) {
+                mDropping = cuts.contains(timeUs);
+            }
+            info.presentationTimeUs = timeUs;
+            if (mDropping) {
+                extractor.advance();
+                return true;
+            }
             buffer.clear();
             int size = extractor.readSampleData(buffer, 0);
             if (size < 0) {
@@ -162,16 +234,13 @@ final class MediaMuxHelper {
             }
             info.offset = 0;
             info.size = size;
-            info.presentationTimeUs = extractor.getSampleTime();
-            int flags = 0;
-            if ((extractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0) {
-                flags |= MediaCodec.BUFFER_FLAG_KEY_FRAME;
-            }
-            info.flags = flags;
+            info.presentationTimeUs = timeUs - cuts.shiftAt(timeUs);
+            info.flags = sync ? MediaCodec.BUFFER_FLAG_KEY_FRAME : 0;
             muxer.writeSampleData(muxerTrack, buffer, info);
             extractor.advance();
             return true;
         }
+
 
         void release() {
             extractor.release();
