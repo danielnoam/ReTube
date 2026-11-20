@@ -61,6 +61,8 @@
     <string name="mobile_settings_24_hour">Usar formato de 24 horas</string>
     <string name="mobile_settings_24_hour_summary">Para la hora de inicio de estrenos y directos</string>
     <string name="mobile_settings_downloads_header">Descargas</string>
+    <string name="mobile_settings_download_cut_sponsors">Quitar segmentos de SponsorBlock</string>
+    <string name="mobile_settings_download_cut_sponsors_summary">Deja fuera las partes que SponsorBlock salta en el reproductor, como patrocinios e intros. En los vídeos el corte cae en el fotograma clave más cercano dentro del segmento, así que puede quedar un segundo o dos.</string>
     <string name="mobile_settings_download_folder_video">Carpeta de vídeos</string>
     <string name="mobile_settings_download_folder_audio">Carpeta de audio</string>
     <string name="mobile_settings_download_folder_default">%1$s (predeterminada)</string>

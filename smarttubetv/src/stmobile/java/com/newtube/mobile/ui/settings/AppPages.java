@@ -27,6 +27,7 @@ import com.liskovsoft.youtubeapi.service.YouTubeSignInService;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
 import com.newtube.mobile.CardMenuMigration;
 import com.newtube.mobile.downloads.DownloadFolders;
+import com.newtube.mobile.downloads.DownloadPrefs;
 import com.newtube.mobile.ui.browse.CardButtons;
 import com.newtube.mobile.ui.browse.TabOrder;
 import com.newtube.mobile.ui.browse.WatchLaterTab;
@@ -88,16 +89,24 @@ final class AppPages {
                 context.getString(R.string.mobile_settings_24_hour_summary),
                 generalData::is24HourLocaleEnabled, generalData::set24HourLocaleEnabled).needsRestart());
 
-        if (DownloadFolders.isSupported()) {
-            downloadFolders(context, rows);
-        }
+        downloads(context, rows);
 
         return new SettingsPages.Page(context.getString(R.string.mobile_settings_general), rows);
     }
 
-    /** Where downloads go: Movies/ReTube and Music/ReTube unless a folder is chosen (DownloadFolders). */
-    private static void downloadFolders(Context context, List<SettingsRow> rows) {
+    /**
+     * Where downloads go (Movies/ReTube and Music/ReTube unless a folder is chosen, Android 8+:
+     * DownloadFolders) and what they leave out.
+     */
+    private static void downloads(Context context, List<SettingsRow> rows) {
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_downloads_header)));
+        rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_download_cut_sponsors),
+                context.getString(R.string.mobile_settings_download_cut_sponsors_summary),
+                () -> DownloadPrefs.isCutSponsorsEnabled(context),
+                on -> DownloadPrefs.setCutSponsorsEnabled(context, on)));
+        if (!DownloadFolders.isSupported()) {
+            return;
+        }
         rows.add(SettingsRow.action(0, context.getString(R.string.mobile_settings_download_folder_video),
                 () -> DownloadFolders.label(context, false), page -> page.pickDownloadFolder(false)));
         rows.add(SettingsRow.action(0, context.getString(R.string.mobile_settings_download_folder_audio),
