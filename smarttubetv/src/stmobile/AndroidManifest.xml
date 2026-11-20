@@ -307,6 +307,28 @@
             android:screenOrientation="unspecified"
             android:theme="@style/Theme.NewTube" />
 
+        <!--
+          "Download" in Android's share sheet (idea from Seal's quick download): the quality picker
+          over the sharing app, no player. Its own empty task affinity keeps it out of the app's
+          task, so picking a row (or dismissing) lands back in the app the link came from.
+        -->
+        <activity
+            android:name="com.newtube.mobile.downloads.ShareDownloadActivity"
+            android:exported="true"
+            android:label="@string/dialog_download"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|layoutDirection|keyboardHidden|uiMode"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.NewTube.Dialog">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+        </activity>
+
         <activity
             android:name="com.newtube.mobile.ui.adddevice.MobileAddDeviceActivity"
             android:exported="false"
