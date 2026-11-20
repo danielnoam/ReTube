@@ -17,6 +17,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Picks what the downloader can turn into a plain playable file, from the format lists the
@@ -392,5 +394,17 @@ public final class DownloadOptions {
             base = base.substring(0, 120).trim();
         }
         return base + "." + extension;
+    }
+
+    private static final Pattern LINK = Pattern.compile("(?:https?://|vnd\\.youtube:)\\S+", Pattern.CASE_INSENSITIVE);
+
+    /** The first link in shared text: apps share "Look at this https://youtu.be/..." as often as the bare link. */
+    @Nullable
+    static String firstLink(@Nullable String text) {
+        if (text == null) {
+            return null;
+        }
+        Matcher matcher = LINK.matcher(text);
+        return matcher.find() ? matcher.group() : null;
     }
 }
