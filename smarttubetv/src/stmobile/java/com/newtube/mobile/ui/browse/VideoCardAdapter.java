@@ -272,7 +272,6 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         private final View mOverflow;
         private final ImageView mAvatar; // null on layouts without one
         private final ImageView mWatchLater; // null on layouts without one
-        private final ImageView mWatched; // null on layouts without one
         private Video mVideo;
         private String mBoundThumbUrl;
         private String mBoundAvatarUrl;
@@ -289,7 +288,6 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
             mOverflow = itemView.findViewById(R.id.video_overflow);
             mAvatar = itemView.findViewById(R.id.video_channel_avatar);
             mWatchLater = itemView.findViewById(R.id.video_watch_later);
-            mWatched = itemView.findViewById(R.id.video_watched);
 
             itemView.setOnClickListener(v -> {
                 if (mVideo != null && clickListener != null) {
@@ -556,7 +554,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         }
 
         void bindCardButtons(CardButtons.OnChanged onChanged) {
-            if (mWatchLater == null || mWatched == null) {
+            if (mWatchLater == null) {
                 return;
             }
             Context context = itemView.getContext();
@@ -577,23 +575,6 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
             } else {
                 mWatchLater.setVisibility(View.GONE);
                 mWatchLater.setOnClickListener(null);
-            }
-
-            if (onChanged != null && video != null && CardButtons.isWatchedOn(context)
-                    && CardButtons.canMarkWatched(video)) {
-                boolean watched = CardButtons.isWatched(video);
-                mWatched.setBackgroundResource(watched ? R.drawable.bg_card_watched_on : R.drawable.bg_card_watch_later);
-                mWatched.setContentDescription(context.getString(
-                        watched ? R.string.mobile_card_mark_unwatched : R.string.mark_as_watched));
-                mWatched.setVisibility(View.VISIBLE);
-                mWatched.setOnClickListener(v -> {
-                    if (mVideo != null) {
-                        CardButtons.toggleWatched(context, mVideo, onChanged);
-                    }
-                });
-            } else {
-                mWatched.setVisibility(View.GONE);
-                mWatched.setOnClickListener(null);
             }
         }
 

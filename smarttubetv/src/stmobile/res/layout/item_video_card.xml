@@ -73,23 +73,9 @@
                 tools:progress="40"
                 tools:visibility="visible" />
 
-            <!-- Home, Subscriptions and Search (CardButtons): Watch later, top left; Watched, top right. -->
+            <!-- Home, Subscriptions and Search (CardButtons): Watch later, top right. -->
             <ImageButton
                 android:id="@+id/video_watch_later"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_gravity="top|start"
-                android:layout_margin="6dp"
-                android:background="@drawable/bg_card_watch_later"
-                android:padding="6dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/icon_watch_later"
-                android:tint="@android:color/white"
-                android:visibility="gone"
-                tools:visibility="visible" />
-
-            <ImageButton
-                android:id="@+id/video_watched"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:layout_gravity="top|end"
@@ -97,7 +83,7 @@
                 android:background="@drawable/bg_card_watch_later"
                 android:padding="6dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_card_watched"
+                android:src="@drawable/icon_watch_later"
                 android:tint="@android:color/white"
                 android:visibility="gone"
                 tools:visibility="visible" />
