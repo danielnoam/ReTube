@@ -244,8 +244,6 @@ final class AppPages {
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_card_buttons)));
         rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_card_watch_later), null,
                 () -> CardButtons.isWatchLaterOn(context), on -> CardButtons.setWatchLaterOn(context, on)));
-        rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_card_watched), null,
-                () -> CardButtons.isWatchedOn(context), on -> CardButtons.setWatchedOn(context, on)));
         rows.add(SettingsRow.divider());
 
         rows.add(SettingsRow.toggle(context.getString(R.string.mobile_settings_original_titles),
