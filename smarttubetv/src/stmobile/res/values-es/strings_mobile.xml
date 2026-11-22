@@ -483,8 +483,5 @@
     <string name="mobile_sleep_timer_paused">El temporizador de apagado ha pausado la reproducción</string>
     <string name="mobile_card_watch_later_already">Ya está en Ver más tarde. Vuelve a tocar para quitarlo.</string>
     <string name="mobile_card_watch_later_error">No se pudo comprobar Ver más tarde. Inténtalo de nuevo.</string>
-    <string name="mobile_card_mark_unwatched">Marcar como no visto</string>
-    <string name="mobile_card_marked_watched">Marcado como visto</string>
-    <string name="mobile_card_marked_unwatched">Marcado como no visto</string>
     <string name="mobile_settings_quality_fixed_intro">Automática se adapta a tu conexión. La resolución elegida se mantiene cuando está disponible; si no, se usa la mejor resolución inferior. Elegir una resolución en el reproductor también cambia este ajuste.</string>
 </resources>
