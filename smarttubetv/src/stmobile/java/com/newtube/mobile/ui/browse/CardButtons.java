@@ -13,7 +13,7 @@ import com.newtube.mobile.ui.common.MobileSnackbar;
 
 /**
  * The Watch later button on feed thumbnails (Home, Subscriptions, Search), top right; switchable in
- * Settings > Feeds.
+ * Settings > Feeds. In Watch later itself it shows every card saved and takes the video out.
  *
  * <p>Watch later signed out is the phone's own list. Signed in the app only learns per video
  * whether it is in the account's Watch later: a card shows "saved" once this session has saved
@@ -22,6 +22,16 @@ import com.newtube.mobile.ui.common.MobileSnackbar;
 public final class CardButtons {
     interface OnChanged {
         void onChanged(Video video);
+    }
+
+    /**
+     * A screen listing Watch later itself: there the button shows each card saved, and a tap takes
+     * the video out, which the screen answers by dropping the card (and putting it back on Undo).
+     */
+    public interface WatchLaterList {
+        void onRemoved(Video video);
+
+        void onRestored(Video video);
     }
 
     private static final String PREFS_NAME = "newtube_cards";
@@ -89,10 +99,33 @@ public final class CardButtons {
         onChanged.onChanged(video);
     }
 
+    static void removeFromWatchLater(Context context, Video video, WatchLaterList list) {
+        Context app = context.getApplicationContext();
+        boolean signed = YouTubeSignInService.instance().isSigned();
+        if (signed) {
+            editAccountWatchLater(app, video, false);
+        } else {
+            LocalWatchLater.instance(app).remove(video.videoId);
+        }
+        list.onRemoved(video);
+        MobileSnackbar.show(app, app.getString(R.string.removed_from_watch_later), app.getString(R.string.action_undo), () -> {
+            if (signed) {
+                editAccountWatchLater(app, video, true);
+            } else {
+                LocalWatchLater.instance(app).add(video);
+            }
+            list.onRestored(video);
+        });
+    }
+
     private static void setSaved(Context context, Video video, boolean saved) {
+        editAccountWatchLater(context, video, saved);
+        say(context, context.getString(saved ? R.string.saved_to_watch_later : R.string.removed_from_watch_later));
+    }
+
+    private static void editAccountWatchLater(Context context, Video video, boolean saved) {
         MediaServiceManager.instance().addRemoveFromWatchLaterPlaylist(video, saved);
         BrowsePresenter.instance(context).onPlaylistEdited();
-        say(context, context.getString(saved ? R.string.saved_to_watch_later : R.string.removed_from_watch_later));
     }
 
     private static void say(Context context, String message) {
