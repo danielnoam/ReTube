@@ -1414,6 +1414,37 @@ public class MobileBrowseActivity extends MobileActivity
     private void syncChannelAvatars() {
         mAdapter.setChannelAvatars(showsChannelAvatars(mCurrentSectionId) ? this::onChannelAvatarClicked : null);
         mAdapter.setCardButtons(showsChannelAvatars(mCurrentSectionId));
+        mAdapter.setWatchLaterList(isWatchLaterShowing() ? mWatchLaterList : null);
+    }
+
+    private boolean isWatchLaterShowing() {
+        for (BrowseSection section : mSections) {
+            if (section.getId() == mCurrentSectionId) {
+                return WatchLaterTab.isWatchLaterSection(section);
+            }
+        }
+        return false;
+    }
+
+    /** Watch later's own cards: the thumbnail button takes a video out, and Undo puts it back on top. */
+    private final CardButtons.WatchLaterList mWatchLaterList = new CardButtons.WatchLaterList() {
+        @Override
+        public void onRemoved(Video video) {
+            editWatchLaterGrid(video, VideoGroup.ACTION_REMOVE);
+        }
+
+        @Override
+        public void onRestored(Video video) {
+            if (!isDestroyed() && isWatchLaterShowing() && !mCurrentVideos.contains(video)) {
+                editWatchLaterGrid(video, VideoGroup.ACTION_PREPEND);
+            }
+        }
+    };
+
+    private void editWatchLaterGrid(Video video, int action) {
+        VideoGroup group = VideoGroup.from(java.util.Collections.singletonList(video));
+        group.setAction(action);
+        updateSection(group);
     }
 
     /** The loading skeleton's avatar circles, where the cards will have avatars. */

@@ -50,7 +50,12 @@ public final class WatchLaterTab {
             return true;
         }
         Object data = section.getData();
-        return data instanceof Video && WATCH_LATER_PLAYLIST_ID.equals(((Video) data).playlistId);
+        return data instanceof Video && isWatchLaterPlaylist(((Video) data).playlistId);
+    }
+
+    /** The account's Watch later playlist. */
+    public static boolean isWatchLaterPlaylist(String playlistId) {
+        return WATCH_LATER_PLAYLIST_ID.equals(playlistId);
     }
 
     /**

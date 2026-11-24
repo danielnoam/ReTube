@@ -59,6 +59,7 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
     /** Held here; ChannelAvatars holds it weakly, so it goes away with this adapter. */
     private final ChannelAvatars.Listener mAvatarListener = this::onAvatarsChanged;
     private boolean mCardButtons;
+    private CardButtons.WatchLaterList mWatchLaterList;
     private String mCardButtonsShown = "";
 
     public VideoCardAdapter(OnVideoClickListener clickListener) {
@@ -143,9 +144,25 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
         notifyCardButtons();
     }
 
+    /**
+     * The list is Watch later itself (null: it isn't): every card's Watch later button shows it
+     * saved, and a tap takes the video out through {@code list}.
+     */
+    public void setWatchLaterList(CardButtons.WatchLaterList list) {
+        boolean changed = (mWatchLaterList == null) != (list == null);
+        mWatchLaterList = list;
+        if (changed) {
+            notifyCardButtons();
+        }
+    }
+
+    private boolean hasCardButtons() {
+        return mCardButtons || mWatchLaterList != null;
+    }
+
     /** After Settings: shows or hides the buttons that were switched on or off there. */
     public void syncCardButtons(Context context) {
-        if (mCardButtons && !mCardButtonsShown.equals(CardButtons.signature(context))) {
+        if (hasCardButtons() && !mCardButtonsShown.equals(CardButtons.signature(context))) {
             notifyCardButtons();
         }
     }
@@ -166,10 +183,10 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
     }
 
     private void bindCardButtons(VideoViewHolder card) {
-        if (mCardButtons) {
+        if (hasCardButtons()) {
             mCardButtonsShown = CardButtons.signature(card.itemView.getContext());
         }
-        card.bindCardButtons(mCardButtons ? this::onCardButtonChanged : null);
+        card.bindCardButtons(mCardButtons ? this::onCardButtonChanged : null, mWatchLaterList);
     }
 
     /** Full-span rows (channel results) for the grid's SpanSizeLookup in multi-column layouts. */
@@ -553,22 +570,27 @@ public class VideoCardAdapter extends ListAdapter<Video, RecyclerView.ViewHolder
                     .into(mAvatar);
         }
 
-        void bindCardButtons(CardButtons.OnChanged onChanged) {
+        void bindCardButtons(CardButtons.OnChanged onChanged, CardButtons.WatchLaterList list) {
             if (mWatchLater == null) {
                 return;
             }
             Context context = itemView.getContext();
             Video video = mVideo;
 
-            if (onChanged != null && video != null && CardButtons.isWatchLaterOn(context)
+            if ((onChanged != null || list != null) && video != null && CardButtons.isWatchLaterOn(context)
                     && CardButtons.canSaveForLater(video)) {
-                boolean saved = CardButtons.isSaved(context, video);
+                boolean saved = list != null || CardButtons.isSaved(context, video);
                 mWatchLater.setImageResource(saved ? R.drawable.ic_mobile_check : R.drawable.icon_watch_later);
                 mWatchLater.setContentDescription(context.getString(
                         saved ? R.string.remove_video_from_watch_later : R.string.add_video_to_watch_later));
                 mWatchLater.setVisibility(View.VISIBLE);
                 mWatchLater.setOnClickListener(v -> {
-                    if (mVideo != null) {
+                    if (mVideo == null) {
+                        return;
+                    }
+                    if (list != null) {
+                        CardButtons.removeFromWatchLater(context, mVideo, list);
+                    } else {
                         CardButtons.toggleWatchLater(context, mVideo, onChanged);
                     }
                 });

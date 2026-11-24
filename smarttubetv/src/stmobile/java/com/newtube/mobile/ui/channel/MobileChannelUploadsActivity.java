@@ -25,7 +25,9 @@ import com.liskovsoft.smartyoutubetv2.common.app.views.ChannelUploadsView;
 import com.liskovsoft.smartyoutubetv2.common.misc.LocalPlaylists;
 import com.liskovsoft.smartyoutubetv2.common.utils.LoadFailure;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.newtube.mobile.ui.browse.CardButtons;
 import com.newtube.mobile.ui.browse.VideoCardAdapter;
+import com.newtube.mobile.ui.browse.WatchLaterTab;
 import com.newtube.mobile.ui.common.FilteredPageTopUp;
 import com.newtube.mobile.ui.common.MobileActivity;
 import com.newtube.mobile.ui.common.ShortsFilter;
@@ -168,7 +170,31 @@ public class MobileChannelUploadsActivity extends MobileActivity
 
         mHeaderAdapter.setPlaylist(isPlaylist ? opener : null);
         applyToolbarTitleAlpha();
+        mAdapter.setWatchLaterList(isPlaylist && WatchLaterTab.isWatchLaterPlaylist(opener.getPlaylistId())
+                ? mWatchLaterList : null);
     }
+
+    /** Watch later's own cards: the thumbnail button takes a video out, and Undo puts it back on top. */
+    private final CardButtons.WatchLaterList mWatchLaterList = new CardButtons.WatchLaterList() {
+        @Override
+        public void onRemoved(Video video) {
+            VideoGroup group = VideoGroup.from(java.util.Collections.singletonList(video));
+            group.setAction(VideoGroup.ACTION_REMOVE);
+            update(group);
+        }
+
+        @Override
+        public void onRestored(Video video) {
+            // Not through update(): a prepended group would become the page the next one follows.
+            if (isDestroyed() || mVideos.contains(video)) {
+                return;
+            }
+            mVideos.add(0, video);
+            mAdapter.submitList(new ArrayList<>(mVideos));
+            updatePlayAllVisibility();
+            hideLoadState();
+        }
+    };
 
     /**
      * The playlist name is already the biggest thing on screen while the header is in view, so
