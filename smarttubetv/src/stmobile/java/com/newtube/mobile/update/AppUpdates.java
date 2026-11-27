@@ -186,6 +186,10 @@ public final class AppUpdates implements AppUpdateCheckerListener {
             return; // store build (-Pfdroid): the store delivers updates, nothing is checked
         }
 
+        if (TestBuilds.isTestBuild()) {
+            return; // a test build checks for a release only when asked (Check for updates)
+        }
+
         // Only while nothing is on offer: with an update found (the You row already shows it) a
         // re-check could answer with another version while the user downloads the first, and the
         // shared checker would then validate the download against the wrong version.

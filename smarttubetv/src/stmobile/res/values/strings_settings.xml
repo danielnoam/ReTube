@@ -322,4 +322,26 @@
     <!-- About -->
     <string name="mobile_settings_version">Version</string>
     <string name="mobile_settings_update_notify_summary">Tells you when a new version is out</string>
+    <!-- About > Test builds -->
+    <string name="mobile_settings_test_builds">Test builds</string>
+    <string name="mobile_settings_test_builds_summary">Try a branch before it\'s released</string>
+    <string name="mobile_settings_test_builds_back_here">Back to the release is here</string>
+    <string name="mobile_settings_test_build_of">Test build of %1$s</string>
+    <string name="mobile_settings_test_builds_note">A test build is a build of a pull request, before it\'s released. It installs over the ReTube you have and keeps your data. Back to the release puts the released version back, as long as the branch didn\'t raise the version number.</string>
+    <string name="mobile_settings_test_builds_loading">Looking for test builds…</string>
+    <string name="mobile_settings_test_builds_failed">Couldn\'t reach GitHub</string>
+    <string name="mobile_settings_test_builds_retry">Try again</string>
+    <string name="mobile_settings_test_builds_none">No test builds right now</string>
+    <string name="mobile_settings_test_builds_none_summary">A pull request gets one when it\'s labelled test</string>
+    <string name="mobile_settings_test_build_meta">#%1$s · %2$s · %3$s</string>
+    <string name="mobile_settings_test_build_download">Tap to download</string>
+    <string name="mobile_settings_test_build_downloading">Downloading… %1$d MB</string>
+    <string name="mobile_settings_test_build_ready">Downloaded, tap to install</string>
+    <string name="mobile_settings_test_build_failed">Download failed, tap to try again</string>
+    <string name="mobile_settings_test_build_installed">Installed now</string>
+    <string name="mobile_settings_test_build_no_apk">No APK for this phone</string>
+    <string name="mobile_settings_test_build_permission">Allow ReTube to install apps, then tap the build again</string>
+    <string name="mobile_settings_test_build_no_installer">No installer found on this phone</string>
+    <string name="mobile_settings_test_build_back">Back to the release</string>
+    <string name="mobile_settings_test_build_uninstall_first">Uninstall ReTube first: this test build\'s version is above %1$s</string>
 </resources>

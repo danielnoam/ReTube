@@ -1,0 +1,40 @@
+# Test builds follow labels on a pull request (same as Waypage): `test` or `test-android` builds the
+# branch (test-build.yml runs on it and tools/test-build.sh publishes the pre-release test-<branch>);
+# taking the label off, closing the pull request or deleting the branch removes the pre-release.
+# A pull request opened (or reopened) with "manual testing" in its title is built at once, no label.
+# A fork's pull request has a read-only token here and never gets a test build.
+name: Test builds
+
+on:
+  delete:
+  pull_request:
+    types: [opened, reopened, closed, labeled, unlabeled]
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build:
+    if: github.event_name == 'pull_request' && ((github.event.action == 'labeled' && startsWith(github.event.label.name, 'test')) || ((github.event.action == 'opened' || github.event.action == 'reopened') && contains(github.event.pull_request.title, 'manual testing')))
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: gh workflow run test-build.yml --ref "$BRANCH" -R "$GITHUB_REPOSITORY"
+
+  remove:
+    if: (github.event_name == 'pull_request' && (github.event.action == 'closed' || (github.event.action == 'unlabeled' && startsWith(github.event.label.name, 'test')))) || github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.event.ref }}
+        run: |
+          NAME="$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9._-' '-')"
+          if gh release delete "test-$NAME" --yes --cleanup-tag -R "$GITHUB_REPOSITORY" 2>/dev/null; then
+            echo "removed test-$NAME"
+          else
+            echo "no test-$NAME to remove"
+          fi
