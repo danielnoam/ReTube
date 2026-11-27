@@ -61,6 +61,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.service.SidebarServi
 import com.liskovsoft.smartyoutubetv2.common.misc.LocalPlaylists;
 import com.liskovsoft.smartyoutubetv2.common.misc.LocalWatchLater;
 import com.liskovsoft.smartyoutubetv2.common.misc.VideoDownloads;
+import com.newtube.mobile.stats.StatsConsent;
 import com.newtube.mobile.downloads.DownloadItem;
 import com.newtube.mobile.downloads.DownloadMenu;
 import com.newtube.mobile.downloads.DownloadRegistry;
@@ -1857,6 +1858,10 @@ public class MobileBrowseActivity extends MobileActivity
         // NEWTUBE(playlists): just signed in with things saved on the phone: offer to copy them.
         MediaServiceManager.instance().addAccountListener(mCopyOfferListener);
         LocalCopyOffer.maybeShow(this);
+        // NEWTUBE(stats): the first start with Settings > Stats asks whether to keep them.
+        if (!LocalCopyOffer.isShowing()) {
+            StatsConsent.maybeAskOnStart(this);
+        }
         getWindow().getDecorView().postDelayed(mUpdateCheckIfDue, UPDATE_CHECK_DELAY_MS);
         // Cheap re-sync; listener callbacks already cover changes while resumed.
         updateCastIconTint();
