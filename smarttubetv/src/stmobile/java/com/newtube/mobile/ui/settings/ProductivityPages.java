@@ -64,6 +64,24 @@ final class ProductivityPages {
         rows.add(SettingsRow.page(context.getString(R.string.mobile_productivity_topics),
                 () -> topicsSummary(context), SettingsPages.PRODUCTIVITY_TOPICS));
 
+        rows.add(SettingsRow.action(0, context.getString(R.string.mobile_productivity_channels),
+                () -> context.getString(R.string.mobile_productivity_channels_summary,
+                        ProductivityPrefs.getChannels(context).size()),
+                page -> {
+                    if (ProductivityPrefs.getChannels(context).isEmpty()) {
+                        return;
+                    }
+                    new MaterialAlertDialogBuilder(page.requireActivity())
+                            .setTitle(R.string.mobile_productivity_channels)
+                            .setMessage(R.string.mobile_productivity_channels_clear)
+                            .setPositiveButton(R.string.mobile_productivity_channels_clear_action, (d, w) -> {
+                                ProductivityPrefs.setChannels(context, new LinkedHashSet<>());
+                                page.rebuild();
+                            })
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show();
+                }));
+
         rows.add(SettingsRow.header(context.getString(R.string.mobile_productivity_limit_header)));
         SettingsRow.Choice<Integer> limit = SettingsRow.choice(context.getString(R.string.mobile_productivity_daily_limit));
         for (int minutes : LIMITS) {

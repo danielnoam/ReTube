@@ -5,27 +5,22 @@ import android.content.Context;
 import androidx.annotation.Nullable;
 
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
+import com.liskovsoft.smartyoutubetv2.common.misc.VideoCategoryCache;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * While productivity mode is on, a list keeps a video only when it is about one of the user's
  * topics: its channel is always allowed, its title or channel name starts a word with one of the
- * keywords, or its YouTube category (known from {@link #rememberCategory}, e.g. once played) is
+ * keywords, or its YouTube category (learned by {@link VideoCategoryCache} once a video has played) is
  * one of the chosen categories. Channels, playlists and other non-video cards are left alone.
  * With the mode off nothing is dropped.
  */
 public final class ProductivityFilter {
-    private static final int CACHE_MAX = 2000;
-    /** videoId -> category. Bounded: a cleared map is only a few lost matches. */
-    private static final Map<String, String> sCategories = new ConcurrentHashMap<>();
-
     private static Context sContext;
     private static boolean sEnabled;
     private static Set<String> sKeywords;
@@ -59,18 +54,22 @@ public final class ProductivityFilter {
         sCategoryMatch = ProductivityPrefs.isCategoryMatchEnabled(c);
     }
 
-    public static boolean isActive() {
-        return sEnabled;
+    /** Test seam: sets the snapshot directly instead of reading preferences. */
+    static void configure(boolean enabled, Set<String> keywords, Set<String> categories,
+                          Set<String> channels, boolean categoryMatch) {
+        Set<String> normalized = new java.util.LinkedHashSet<>();
+        for (String keyword : keywords) {
+            normalized.add(normalize(keyword));
+        }
+        sEnabled = enabled;
+        sKeywords = normalized;
+        sCategorySet = categories;
+        sChannels = channels;
+        sCategoryMatch = categoryMatch;
     }
 
-    public static void rememberCategory(@Nullable String videoId, @Nullable String category) {
-        if (videoId == null || category == null || category.isEmpty()) {
-            return;
-        }
-        if (sCategories.size() >= CACHE_MAX) {
-            sCategories.clear();
-        }
-        sCategories.put(videoId, category);
+    public static boolean isActive() {
+        return sEnabled;
     }
 
     /** Whether the card may be listed right now. */
@@ -89,7 +88,7 @@ public final class ProductivityFilter {
             return true;
         }
         if (sCategoryMatch) {
-            String category = sCategories.get(video.videoId);
+            String category = VideoCategoryCache.get(video.videoId);
             if (category == null) {
                 category = video.category;
             }

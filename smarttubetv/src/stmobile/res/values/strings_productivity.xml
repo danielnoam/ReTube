@@ -47,4 +47,11 @@
     <string name="mobile_productivity_times_up_mode">Productivity mode is on until the limit resets at midnight.</string>
     <string name="mobile_productivity_times_up_close">You have used your daily limit. It resets at midnight.</string>
     <string name="mobile_productivity_close_app">Close ReTube</string>
+    <string name="mobile_productivity_allow_channel">Always show this channel in productivity mode</string>
+    <string name="mobile_productivity_channel_allowed">Channel always shown in productivity mode</string>
+    <string name="mobile_productivity_channel_removed">Channel follows your topics again</string>
+    <string name="mobile_productivity_channels">Always shown channels</string>
+    <string name="mobile_productivity_channels_summary">%1$d channels · add one with the target button on its page</string>
+    <string name="mobile_productivity_channels_clear">Stop always showing these channels?</string>
+    <string name="mobile_productivity_channels_clear_action">Remove all</string>
 </resources>

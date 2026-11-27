@@ -1,0 +1,70 @@
+diff --git a/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/data/MediaItemFormatInfo.java b/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/data/MediaItemFormatInfo.java
+index 882e335e..3c41d667 100644
+--- a/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/data/MediaItemFormatInfo.java
++++ b/mediaserviceinterfaces/src/main/java/com/liskovsoft/mediaserviceinterfaces/data/MediaItemFormatInfo.java
+@@ -69,6 +69,8 @@ public interface MediaItemFormatInfo extends FormatInfoProvision {
+      */
+     String getStartTimestamp();
+     String getUploadDate();
++    /** The video's YouTube category from the /player microformat ("Education"...), or null. */
++    default String getCategory() { return null; }
+     /**
+      * Stream start time in UNIX format.<br/>
+      */
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItemFormatInfo.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItemFormatInfo.java
+index 815952af..3e349b57 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItemFormatInfo.java
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/service/data/YouTubeMediaItemFormatInfo.java
+@@ -52,6 +52,7 @@ public class YouTubeMediaItemFormatInfo implements MediaItemFormatInfo {
+     private String mPlayabilityStatus;
+     private String mStartTimestamp;
+     private String mUploadDate;
++    private String mCategory;
+     private long mStartTimeMs;
+     private int mStartSegmentNum;
+     private int mSegmentDurationUs;
+@@ -153,6 +154,7 @@ public class YouTubeMediaItemFormatInfo implements MediaItemFormatInfo {
+         formatInfo.mIsStreamSeekable = videoInfo.isHfr() || videoInfo.isStreamSeekable();
+         formatInfo.mStartTimestamp = videoInfo.getStartTimestamp();
+         formatInfo.mUploadDate = videoInfo.getUploadDate();
++        formatInfo.mCategory = videoInfo.getCategory();
+         formatInfo.mStartTimeMs = videoInfo.getStartTimeMs();
+         formatInfo.mStartSegmentNum = videoInfo.getStartSegmentNum();
+         formatInfo.mSegmentDurationUs = videoInfo.getSegmentDurationUs();
+@@ -436,6 +438,11 @@ public class YouTubeMediaItemFormatInfo implements MediaItemFormatInfo {
+         return mUploadDate;
+     }
+ 
++    @Override
++    public String getCategory() {
++        return mCategory;
++    }
++
+     @Override
+     public long getStartTimeMs() {
+         return mStartTimeMs;
+diff --git a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/models/VideoInfo.java b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/models/VideoInfo.java
+index 40024e19..3c3cc7ec 100644
+--- a/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/models/VideoInfo.java
++++ b/youtubeapi/src/main/java/com/liskovsoft/youtubeapi/videoinfo/models/VideoInfo.java
+@@ -105,6 +105,9 @@ public class VideoInfo {
+     @JsonPath("$.microformat.playerMicroformatRenderer.uploadDate")
+     private String mUploadDate;
+ 
++    @JsonPath("$.microformat.playerMicroformatRenderer.category")
++    private String mCategory;
++
+     @JsonPath("$.playerConfig.audioConfig.loudnessDb")
+     private float mLoudnessDb;
+ 
+@@ -467,6 +470,10 @@ public class VideoInfo {
+         return mUploadDate;
+     }
+ 
++    public String getCategory() {
++        return mCategory;
++    }
++
+     public long getStartTimeMs() {
+         return mStartTimeMs;
+     }

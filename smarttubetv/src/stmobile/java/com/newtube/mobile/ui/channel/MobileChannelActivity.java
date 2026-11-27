@@ -154,6 +154,46 @@ public class MobileChannelActivity extends MobileActivity
         String name = channel != null ? Helpers.firstNonNull(channel.getAuthor(), channel.getTitle()) : null;
         mTitleFromCard = name != null;
         mTitleView.setText(name != null ? name : getString(R.string.header_channels));
+        updateAllowButton();
+    }
+
+    private android.widget.ImageButton mAllowButton;
+
+    @Nullable
+    private String channelIdOrNull() {
+        Video channel = mPresenter != null ? mPresenter.getChannel() : null;
+        return channel != null ? channel.channelId : null;
+    }
+
+    /** Productivity mode's "always show this channel" switch; shown once the channel id is known. */
+    private void updateAllowButton() {
+        String id = channelIdOrNull();
+        if (mAllowButton == null || id == null) {
+            return;
+        }
+        mAllowButton.setVisibility(android.view.View.VISIBLE);
+        boolean allowed = com.newtube.mobile.productivity.ProductivityPrefs.getChannels(this).contains(id);
+        if (allowed) {
+            mAllowButton.setColorFilter(getColor(R.color.mobile_color_cast_active));
+        } else {
+            mAllowButton.clearColorFilter();
+        }
+    }
+
+    private void toggleAllowedChannel() {
+        String id = channelIdOrNull();
+        if (id == null) {
+            return;
+        }
+        java.util.Set<String> channels = com.newtube.mobile.productivity.ProductivityPrefs.getChannels(this);
+        boolean added = channels.add(id);
+        if (!added) {
+            channels.remove(id);
+        }
+        com.newtube.mobile.productivity.ProductivityPrefs.setChannels(this, channels);
+        updateAllowButton();
+        com.newtube.mobile.ui.common.MobileSnackbar.show(this, added
+                ? R.string.mobile_productivity_channel_allowed : R.string.mobile_productivity_channel_removed);
     }
 
     /** NEWTUBE: name a link-opened channel once its first videos arrive. */
@@ -182,6 +222,8 @@ public class MobileChannelActivity extends MobileActivity
         mProgressBar = findViewById(R.id.mobile_channel_progress);
         mTitleView = findViewById(R.id.mobile_channel_title);
         mBackButton = findViewById(R.id.mobile_channel_back);
+        mAllowButton = findViewById(R.id.mobile_channel_allow_button);
+        mAllowButton.setOnClickListener(v -> toggleAllowedChannel());
         mSwipe = findViewById(R.id.mobile_channel_swipe);
         mLoadState = new PageLoadState(findViewById(R.id.mobile_page_load_state), this::retryFirstPage);
     }

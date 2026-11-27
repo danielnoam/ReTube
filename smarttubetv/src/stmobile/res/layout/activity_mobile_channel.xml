@@ -52,6 +52,19 @@
             android:textStyle="bold"
             tools:text="Some Channel" />
 
+        <!-- Productivity mode: always list this channel's videos (Settings > Productivity). -->
+        <ImageButton
+            android:id="@+id/mobile_channel_allow_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/mobile_productivity_allow_channel"
+            android:padding="12dp"
+            android:src="@drawable/ic_settings_productivity"
+            android:visibility="gone"
+            app:tint="@color/mobile_color_on_surface" />
+
     </LinearLayout>
 
     <!-- One tab per channel section, in delivery order. Hidden until sections arrive.

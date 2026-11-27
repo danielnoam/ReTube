@@ -520,6 +520,7 @@ public class VideoLoaderController extends BasePlayerController {
 
         mPreMediaRetry.onResult(getVideo().videoId,
                 formatInfo.isUnplayable() && formatInfo.isBotCheckRequired());
+        com.liskovsoft.smartyoutubetv2.common.misc.VideoCategoryCache.rememberFrom(getVideo().videoId, formatInfo); // NEWTUBE(productivity)
 
         // NetPath milestone 2: InnerTube metadata/streamingData arrived (consumer side).
         NetPath.logInfo(getVideo().videoId,
