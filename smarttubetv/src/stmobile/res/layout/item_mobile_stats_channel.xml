@@ -10,7 +10,8 @@
 
     <TextView
         android:id="@+id/stats_channel_rank"
-        android:layout_width="24dp"
+        android:layout_width="wrap_content"
+        android:minWidth="24dp"
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-medium"
         android:textColor="@color/mobile_color_on_surface_secondary"

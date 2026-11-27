@@ -303,6 +303,15 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
             channels.addView(row);
         }
 
+        renderKinds(context, data, root, inflater);
+        View recap = root.findViewById(R.id.stats_recap);
+        recap.setVisibility(data.isEmpty() ? View.GONE : View.VISIBLE);
+        recap.setOnClickListener(v -> {
+            if (getActivity() instanceof MobileSettingsActivity) {
+                ((MobileSettingsActivity) getActivity()).openStatsRecap(this);
+            }
+        });
+
         StatsData.Totals allTime = data.allTime();
         String allText = context.getString(R.string.mobile_stats_all_time_watch, duration(context, allTime.watchMs))
                 + "\n" + context.getResources().getQuantityString(R.plurals.mobile_stats_all_time_videos, allTime.videos, allTime.videos)
@@ -316,6 +325,38 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
         }
         // All time repeats the card at the top: leave it out there.
         root.findViewById(R.id.stats_all_time_card).setVisibility(all ? View.GONE : View.VISIBLE);
+    }
+
+    /** Videos, Shorts, live and music: all-time watch time and share, most watched first. */
+    private static void renderKinds(Context context, StatsData data, View root, LayoutInflater inflater) {
+        LinearLayout kinds = root.findViewById(R.id.stats_kinds);
+        kinds.removeAllViews();
+        long total = 0;
+        for (String kind : StatsData.KINDS) {
+            total += data.kindMs(kind);
+        }
+        root.findViewById(R.id.stats_kinds_card).setVisibility(total > 0 ? View.VISIBLE : View.GONE);
+        if (total <= 0) {
+            return;
+        }
+        List<String> order = new ArrayList<>(java.util.Arrays.asList(StatsData.KINDS));
+        java.util.Collections.sort(order, (a, b) -> Long.compare(data.kindMs(b), data.kindMs(a)));
+        for (String kind : order) {
+            long ms = data.kindMs(kind);
+            if (ms <= 0) {
+                continue;
+            }
+            int name = StatsData.KIND_SHORTS.equals(kind) ? R.string.mobile_stats_kind_shorts
+                    : StatsData.KIND_LIVE.equals(kind) ? R.string.mobile_stats_kind_live
+                    : StatsData.KIND_MUSIC.equals(kind) ? R.string.mobile_stats_kind_music : R.string.mobile_stats_kind_video;
+            View row = inflater.inflate(R.layout.item_mobile_stats_channel, kinds, false);
+            TextView share = row.findViewById(R.id.stats_channel_rank);
+            share.setMinWidth(Math.round(48 * context.getResources().getDisplayMetrics().density));
+            share.setText(Math.round(100f * ms / total) + "%");
+            ((TextView) row.findViewById(R.id.stats_channel_name)).setText(name);
+            ((TextView) row.findViewById(R.id.stats_channel_time)).setText(duration(context, ms));
+            kinds.addView(row);
+        }
     }
 
     /** Day: the 7 days up to the shown one. Otherwise: the days of the period counted so far. */

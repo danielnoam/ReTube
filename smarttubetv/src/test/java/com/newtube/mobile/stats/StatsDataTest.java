@@ -82,6 +82,24 @@ public class StatsDataTest {
     }
 
     @Test
+    public void kindsHoursAndBiggestDay() throws Exception {
+        StatsData data = new StatsData();
+        data.addWatch(300, 1, "UC1", "One", false, 10 * MIN, false, StatsData.KIND_SHORTS, 23);
+        data.addWatch(300, 2, "UC1", "One", false, 5 * MIN, false, StatsData.KIND_VIDEO, 23);
+        data.addWatch(301, 3, "UC2", "Two", false, 4 * MIN, false, StatsData.KIND_MUSIC, 9);
+        assertEquals(10 * MIN, data.kindMs(StatsData.KIND_SHORTS));
+        assertEquals(0, data.kindMs(StatsData.KIND_LIVE));
+        assertEquals(23, data.peakHour());
+        assertEquals(300, data.biggestDay());
+        assertEquals(15 * MIN, data.dayWatchMs(300));
+        assertEquals(2, data.activeDays());
+
+        StatsData back = StatsData.fromJson(data.toJson());
+        assertEquals(4 * MIN, back.kindMs(StatsData.KIND_MUSIC));
+        assertEquals(23, back.peakHour());
+    }
+
+    @Test
     public void nothingIsRecordedWithoutConsent() {
         Context context = context();
         assertEquals(LocalStats.CONSENT_UNASKED, LocalStats.getConsent(context));

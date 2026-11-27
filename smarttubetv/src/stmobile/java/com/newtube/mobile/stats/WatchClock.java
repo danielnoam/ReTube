@@ -32,6 +32,7 @@ public final class WatchClock {
     private String mChannelId;
     private String mChannelName;
     private boolean mOffline;
+    private String mKind;
 
     private String mCountingVideoId;
     private long mCountingMs;
@@ -49,6 +50,7 @@ public final class WatchClock {
             mChannelId = video.channelId;
             mChannelName = video.getAuthor();
             mOffline = video.isLocal();
+            mKind = kindOf(video);
             mStartedAt = now;
             mHandler.postDelayed(mCheckpoint, CHECKPOINT_MS);
         }
@@ -88,6 +90,21 @@ public final class WatchClock {
         if (count) {
             mCounted = true;
         }
-        LocalStats.recordWatch(mContext, mChannelId, mChannelName, mOffline, ms, count);
+        LocalStats.recordWatch(mContext, mChannelId, mChannelName, mOffline, ms, count, mKind);
+    }
+
+    /** Shorts and live from the video itself; music from YouTube's auto-made "Artist - Topic" channels. */
+    static String kindOf(@NonNull Video video) {
+        if (video.isShorts) {
+            return StatsData.KIND_SHORTS;
+        }
+        if (video.isLive) {
+            return StatsData.KIND_LIVE;
+        }
+        String author = video.getAuthor();
+        if (author != null && author.endsWith(" - Topic")) {
+            return StatsData.KIND_MUSIC;
+        }
+        return StatsData.KIND_VIDEO;
     }
 }

@@ -352,6 +352,24 @@
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/stats_kinds_card"
+                    style="@style/MobileStatsCard"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/MobileStatsHeading"
+                        android:text="@string/mobile_stats_kinds_title" />
+
+                    <LinearLayout
+                        android:id="@+id/stats_kinds"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+
+                <LinearLayout
                     android:id="@+id/stats_all_time_card"
                     style="@style/MobileStatsCard"
                     android:orientation="vertical">
@@ -377,6 +395,23 @@
                         tools:text="Since Nov 27, 2026" />
 
                 </LinearLayout>
+
+                <!-- The all-time recap as animated cards (StatsRecapFragment). -->
+                <Button
+                    android:id="@+id/stats_recap"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/mobile_stats_recap_button"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    app:backgroundTint="@color/mobile_color_progress"
+                    app:cornerRadius="16dp" />
 
             </LinearLayout>
 

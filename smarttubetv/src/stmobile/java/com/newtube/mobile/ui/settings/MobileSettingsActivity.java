@@ -75,6 +75,11 @@ public class MobileSettingsActivity extends MobileActivity {
         push(from, new StatsFragment(), "stats", true);
     }
 
+    /** Stats > "Get disappointed in your life". */
+    void openStatsRecap(@NonNull Fragment from) {
+        push(from, new StatsRecapFragment(), "stats_recap", true);
+    }
+
     /**
      * A search result: the page it opens, or the page it is on with the row lit up. Either way it
      * goes on top of the search page, so Back comes back to the results.

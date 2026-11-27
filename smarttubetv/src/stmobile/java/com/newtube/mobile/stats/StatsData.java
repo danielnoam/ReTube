@@ -23,6 +23,13 @@ public final class StatsData {
     static final int KEEP_DAYS = 3660;
     static final int MAX_CHANNELS = 300;
 
+    /** What kind of video a stretch was: the "categories" ReTube knows without asking YouTube. */
+    public static final String KIND_VIDEO = "video";
+    public static final String KIND_SHORTS = "shorts";
+    public static final String KIND_LIVE = "live";
+    public static final String KIND_MUSIC = "music";
+    public static final String[] KINDS = {KIND_VIDEO, KIND_SHORTS, KIND_LIVE, KIND_MUSIC};
+
     static final class Day {
         long watchMs;
         /** Part of watchMs played from a downloaded file. */
@@ -64,13 +71,28 @@ public final class StatsData {
     int audioDownloads;
     /** Wall-clock time of the first thing recorded; 0 while nothing is. */
     long sinceMs;
+    /** All-time watch time by kind ({@link #KINDS}). */
+    final Map<String, Long> kindMs = new HashMap<>();
+    /** All-time watch time by local hour of day. */
+    final long[] hourMs = new long[24];
 
     void addWatch(long day, long nowMs, @Nullable String channelId, @Nullable String channelName,
                   boolean offline, long ms, boolean countVideo) {
+        addWatch(day, nowMs, channelId, channelName, offline, ms, countVideo, KIND_VIDEO, -1);
+    }
+
+    /** {@code hour}: the local hour of day (0-23) it was watched in, or -1. */
+    void addWatch(long day, long nowMs, @Nullable String channelId, @Nullable String channelName,
+                  boolean offline, long ms, boolean countVideo, @NonNull String kind, int hour) {
         if (ms <= 0 && !countVideo) {
             return;
         }
         touch(nowMs);
+        Long kindTotal = kindMs.get(kind);
+        kindMs.put(kind, (kindTotal != null ? kindTotal : 0) + ms);
+        if (hour >= 0 && hour < 24) {
+            hourMs[hour] += ms;
+        }
         Day d = day(day);
         d.watchMs += ms;
         totalWatchMs += ms;
@@ -132,6 +154,51 @@ public final class StatsData {
         totals.videos = totalVideos;
         totals.downloads = videoDownloads + audioDownloads;
         return totals;
+    }
+
+    public long kindMs(@NonNull String kind) {
+        Long ms = kindMs.get(kind);
+        return ms != null ? ms : 0;
+    }
+
+    /** The hour of day with the most watch time, or -1 before any is counted. */
+    public int peakHour() {
+        int peak = -1;
+        for (int h = 0; h < 24; h++) {
+            if (hourMs[h] > 0 && (peak < 0 || hourMs[h] > hourMs[peak])) {
+                peak = h;
+            }
+        }
+        return peak;
+    }
+
+    /** The day (as {@link StatsCalendar} counts) with the most watch time in the kept days, or -1. */
+    public long biggestDay() {
+        long best = -1;
+        long bestMs = 0;
+        for (Map.Entry<Long, Day> entry : days.entrySet()) {
+            if (entry.getValue().watchMs > bestMs) {
+                bestMs = entry.getValue().watchMs;
+                best = entry.getKey();
+            }
+        }
+        return best;
+    }
+
+    public long dayWatchMs(long day) {
+        Day d = days.get(day);
+        return d != null ? d.watchMs : 0;
+    }
+
+    /** Days with any watch time, among the kept ones. */
+    public int activeDays() {
+        int count = 0;
+        for (Day d : days.values()) {
+            if (d.watchMs > 0) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public int getVideoDownloads() {
@@ -212,6 +279,16 @@ public final class StatsData {
             channelArray.put(new JSONArray().put(c.key).put(c.name).put(c.watchMs).put(c.videos));
         }
         json.put("channels", channelArray);
+        JSONObject kinds = new JSONObject();
+        for (Map.Entry<String, Long> entry : kindMs.entrySet()) {
+            kinds.put(entry.getKey(), entry.getValue());
+        }
+        json.put("kinds", kinds);
+        JSONArray hours = new JSONArray();
+        for (long h : hourMs) {
+            hours.put(h);
+        }
+        json.put("hours", hours);
         return json;
     }
 
@@ -250,6 +327,20 @@ public final class StatsData {
                 c.watchMs = row.optLong(2);
                 c.videos = row.optInt(3);
                 data.channels.put(c.key, c);
+            }
+        }
+        JSONObject kinds = json.optJSONObject("kinds");
+        if (kinds != null) {
+            for (String kind : KINDS) {
+                if (kinds.has(kind)) {
+                    data.kindMs.put(kind, kinds.optLong(kind));
+                }
+            }
+        }
+        JSONArray hours = json.optJSONArray("hours");
+        if (hours != null) {
+            for (int h = 0; h < 24 && h < hours.length(); h++) {
+                data.hourMs[h] = hours.optLong(h);
             }
         }
         return data;

@@ -67,4 +67,69 @@
 
     <string name="mobile_stats_hours_minutes">%1$d h %2$d min</string>
     <string name="mobile_stats_minutes">%d min</string>
+
+    <!-- Settings > Stats > "Get disappointed in your life" (StatsRecapFragment) -->
+    <string name="mobile_stats_recap_button">Get disappointed in your life</string>
+    <string name="mobile_recap_intro_kicker">Your stats, all time</string>
+    <string name="mobile_recap_intro_big">Ready?</string>
+    <string name="mobile_recap_intro_caption">Let\'s see how much of your life went into videos.</string>
+    <string name="mobile_recap_tap_hint">Tap to go on</string>
+    <string name="mobile_recap_total_kicker">You\'ve spent</string>
+    <plurals name="mobile_recap_hours">
+        <item quantity="one">%s hour</item>
+        <item quantity="other">%s hours</item>
+    </plurals>
+    <string name="mobile_recap_total_caption">watching videos.</string>
+    <string name="mobile_recap_total_aside">That\'s %1$s full days. Counting only waking hours, %2$s days.</string>
+    <string name="mobile_recap_little">Not bad. Not yet.</string>
+    <string name="mobile_recap_instead_kicker">In that time you could have watched</string>
+    <plurals name="mobile_recap_movies">
+        <item quantity="one">%s movie</item>
+        <item quantity="other">%s movies</item>
+    </plurals>
+    <string name="mobile_recap_instead_caption">Real ones. With endings.</string>
+    <string name="mobile_recap_instead_aside">Or read %1$s books. Or slept %2$s full nights.</string>
+    <string name="mobile_recap_worst_kicker">Your worst day</string>
+    <string name="mobile_recap_worst_aside">%d%% of that whole day, gone.</string>
+    <string name="mobile_recap_hour_kicker">Your danger hour</string>
+    <string name="mobile_recap_hour_caption">is when most of it happens.</string>
+    <string name="mobile_recap_hour_night">You should be asleep.</string>
+    <string name="mobile_recap_hour_morning">Starting the day strong. With videos.</string>
+    <string name="mobile_recap_hour_day">Shouldn\'t you be working?</string>
+    <string name="mobile_recap_hour_evening">The evening was yours. You gave it away.</string>
+    <string name="mobile_recap_channel_kicker">You gave the most time to</string>
+    <string name="mobile_recap_channel_caption">%s of your life.</string>
+    <string name="mobile_recap_channel_aside">They don\'t know your name.</string>
+    <string name="mobile_recap_videos_kicker">You started</string>
+    <plurals name="mobile_recap_videos_caption">
+        <item quantity="one">video.</item>
+        <item quantity="other">videos.</item>
+    </plurals>
+    <string name="mobile_recap_videos_aside">About %s each. It adds up.</string>
+    <string name="mobile_recap_kind_kicker">Where it went</string>
+    <string name="mobile_recap_kind_shorts">of it was Shorts.</string>
+    <string name="mobile_recap_kind_shorts_aside">Swipe. Swipe. Swipe.</string>
+    <string name="mobile_recap_kind_video">of it was regular videos.</string>
+    <string name="mobile_recap_kind_video_aside">At least they had a beginning and an end.</string>
+    <string name="mobile_recap_kind_live">of it was live streams.</string>
+    <string name="mobile_recap_kind_live_aside">Waiting for something to happen.</string>
+    <string name="mobile_recap_kind_music">of it was music.</string>
+    <string name="mobile_recap_kind_music_aside">Honestly, that one\'s fine.</string>
+    <string name="mobile_recap_downloads_kicker">You downloaded</string>
+    <plurals name="mobile_recap_downloads_caption">
+        <item quantity="one">video.</item>
+        <item quantity="other">videos.</item>
+    </plurals>
+    <string name="mobile_recap_downloads_used">And %d%% of your watching was from them. Planning ahead, at least.</string>
+    <string name="mobile_recap_downloads_unused">Then streamed anyway: only %d%% of your watching came from them.</string>
+    <string name="mobile_recap_outro_kicker">That\'s it.</string>
+    <string name="mobile_recap_outro_big">Go outside.</string>
+    <string name="mobile_recap_outro_caption">Your stats will be here when you get back.</string>
+    <string name="mobile_recap_outro_aside">Tap to close</string>
+
+    <string name="mobile_stats_kinds_title">What you watch · all time</string>
+    <string name="mobile_stats_kind_video">Videos</string>
+    <string name="mobile_stats_kind_shorts">Shorts</string>
+    <string name="mobile_stats_kind_live">Live</string>
+    <string name="mobile_stats_kind_music">Music</string>
 </resources>

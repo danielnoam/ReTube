@@ -68,12 +68,17 @@ public final class LocalStats {
     /** Played time of one stretch of a video; {@code countVideo} once it has played long enough. */
     static void recordWatch(@NonNull Context context, @Nullable String channelId, @Nullable String channelName,
                             boolean offline, long ms, boolean countVideo) {
+        recordWatch(context, channelId, channelName, offline, ms, countVideo, StatsData.KIND_VIDEO);
+    }
+
+    static void recordWatch(@NonNull Context context, @Nullable String channelId, @Nullable String channelName,
+                            boolean offline, long ms, boolean countVideo, @NonNull String kind) {
         if (!isRecording(context)) {
             return;
         }
         synchronized (LOCK) {
             data(context).addWatch(StatsCalendar.today(), System.currentTimeMillis(), channelId, channelName,
-                    offline, ms, countVideo);
+                    offline, ms, countVideo, kind, java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY));
             save(context);
         }
     }
