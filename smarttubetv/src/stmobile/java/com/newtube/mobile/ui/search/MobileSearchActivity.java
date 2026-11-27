@@ -772,7 +772,7 @@ public class MobileSearchActivity extends MobileActivity
 
         runOnUiThread(() -> {
             int incoming = group.getVideos() != null ? group.getVideos().size() : 0;
-            List<Video> shown = ShortsFilter.withoutShorts(group.getVideos()); // NEWTUBE(shorts)
+            List<Video> shown = com.newtube.mobile.productivity.ProductivityFilter.filter(ShortsFilter.withoutShorts(group.getVideos())); // NEWTUBE(shorts)
             int shortsHidden = incoming - (shown != null ? shown.size() : 0);
             if (group.getAction() != VideoGroup.ACTION_REMOVE && group.getAction() != VideoGroup.ACTION_SYNC) {
                 if (!mGenerations.accept(group)) {

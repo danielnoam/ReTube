@@ -547,7 +547,7 @@ public class MobileChannelActivity extends MobileActivity
             int id = group.getId();
             Section section = mSections.get(id);
             boolean isNewSection = section == null;
-            List<Video> shown = ShortsFilter.withoutShorts(group.getVideos()); // NEWTUBE(shorts)
+            List<Video> shown = com.newtube.mobile.productivity.ProductivityFilter.filter(ShortsFilter.withoutShorts(group.getVideos())); // NEWTUBE(shorts)
             boolean content = group.getAction() != VideoGroup.ACTION_REMOVE && group.getAction() != VideoGroup.ACTION_SYNC;
             int shortsDropped = (group.getVideos() != null ? group.getVideos().size() : 0)
                     - (shown != null ? shown.size() : 0);

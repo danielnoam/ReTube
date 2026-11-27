@@ -42,6 +42,8 @@ public final class SettingsPages {
     public static final String FEEDS_HIDDEN = "feeds_hidden";
     public static final String FEEDS_MENU = "feeds_menu";
     public static final String PRIVACY = "privacy";
+    public static final String PRODUCTIVITY = "productivity";
+    public static final String PRODUCTIVITY_TOPICS = "productivity_topics";
     public static final String PLAYBACK = "playback";
     public static final String QUALITY = "quality";
     public static final String CAPTIONS = "captions";
@@ -81,6 +83,10 @@ public final class SettingsPages {
                 return AppPages.videoMenu(context);
             case PRIVACY:
                 return AppPages.privacy(context);
+            case PRODUCTIVITY:
+                return ProductivityPages.productivity(context);
+            case PRODUCTIVITY_TOPICS:
+                return ProductivityPages.topics(context);
             case PLAYBACK:
                 return PlayerPages.playback(context);
             case QUALITY:
@@ -124,6 +130,9 @@ public final class SettingsPages {
                 context.getString(R.string.mobile_settings_feeds_summary), FEEDS));
         rows.add(SettingsRow.page(R.drawable.ic_settings_privacy, context.getString(R.string.mobile_settings_privacy),
                 context.getString(R.string.mobile_settings_privacy_summary), PRIVACY));
+        rows.add(SettingsRow.page(R.drawable.ic_settings_productivity, context.getString(R.string.mobile_productivity),
+                context.getString(R.string.mobile_productivity_summary), PRODUCTIVITY)
+                .summary(() -> ProductivityPages.summary(context)));
 
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_group_video)));
         rows.add(SettingsRow.page(R.drawable.ic_settings_playback, context.getString(R.string.mobile_settings_playback),

@@ -153,6 +153,9 @@ public class MobileBrowseActivity extends MobileActivity
     private MaterialButton mErrorAction;
     private ImageButton mSearchButton;
     private ImageButton mCastButton;
+    private ImageButton mProductivityButton;
+    /** Productivity mode as this screen last drew its lists; a change elsewhere reloads them. */
+    private boolean mProductivityShown;
     /** Process-wide cast session singleton; Browse only reads state + opens the picker. */
     private CastSessionManager mCastSessionManager;
 
@@ -295,6 +298,7 @@ public class MobileBrowseActivity extends MobileActivity
         mErrorAction = findViewById(R.id.mobile_error_action);
         mSearchButton = findViewById(R.id.mobile_search_button);
         mCastButton = findViewById(R.id.mobile_cast_button);
+        mProductivityButton = findViewById(R.id.mobile_productivity_button);
         mTopBar = new BrowseTopBar(this, () -> getOnBackPressedDispatcher().onBackPressed());
 
         mMiniPlayerBar = findViewById(R.id.mobile_mini_player);
@@ -835,6 +839,7 @@ public class MobileBrowseActivity extends MobileActivity
         // CastPickerLauncher owns the Android 16+ ACCESS_LOCAL_NETWORK gate (shared with the
         // player); Browse has no immersive window, so the plain presenter is enough.
         mCastButton.setOnClickListener(v -> CastPickerLauncher.open(this, CastPickerLauncher::presentPlain));
+        setupProductivityButton();
 
         mCastSessionManager = CastSessionManager.instance(this);
         mCastSessionManager.addListener(mCastListener);
@@ -872,6 +877,58 @@ public class MobileBrowseActivity extends MobileActivity
      * tap -> connected takes seconds; the auto-fallback's mdx resolve up to 15s) the glyph's wifi
      * arcs pulse (animation-list swaps the icon); accent tint once connected; stock white idle.
      */
+    /** Productivity mode button: tap toggles (or hold, when Settings asks for a deliberate exit). */
+    private void setupProductivityButton() {
+        mProductivityShown = com.newtube.mobile.productivity.ProductivityPrefs.isEnabled(this);
+        updateProductivityButton();
+        mProductivityButton.setOnClickListener(v -> {
+            boolean on = com.newtube.mobile.productivity.ProductivityPrefs.isEnabled(this);
+            if (on && com.newtube.mobile.productivity.ProductivityPrefs.isHoldToExit(this)) {
+                MobileSnackbar.show(this, R.string.mobile_productivity_snack_hold);
+                return;
+            }
+            toggleProductivity(!on);
+        });
+        mProductivityButton.setOnLongClickListener(v -> {
+            if (com.newtube.mobile.productivity.ProductivityPrefs.isEnabled(this)
+                    && com.newtube.mobile.productivity.ProductivityPrefs.isHoldToExit(this)) {
+                toggleProductivity(false);
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void toggleProductivity(boolean on) {
+        if (!on && !com.newtube.mobile.productivity.UsageClock.canTurnOff(this)) {
+            MobileSnackbar.show(this, R.string.mobile_productivity_locked);
+            return;
+        }
+        com.newtube.mobile.productivity.ProductivityPrefs.setEnabled(this, on);
+        MobileSnackbar.show(this, on ? R.string.mobile_productivity_snack_on : R.string.mobile_productivity_snack_off);
+        reloadForProductivity();
+    }
+
+    /** The lists were filtered under the old setting: start the screen over so they load again. */
+    private void reloadForProductivity() {
+        mProductivityShown = com.newtube.mobile.productivity.ProductivityPrefs.isEnabled(this);
+        recreate();
+    }
+
+    private void updateProductivityButton() {
+        if (mProductivityButton == null) {
+            return;
+        }
+        boolean on = com.newtube.mobile.productivity.ProductivityPrefs.isEnabled(this);
+        if (on) {
+            mProductivityButton.setColorFilter(getColorInt(R.color.mobile_color_cast_active));
+        } else {
+            mProductivityButton.clearColorFilter();
+        }
+        mProductivityButton.setContentDescription(getString(on
+                ? R.string.mobile_productivity_button_hold : R.string.mobile_productivity_button));
+    }
+
     private void updateCastIconTint() {
         if (mCastButton == null) {
             return;
@@ -1831,6 +1888,13 @@ public class MobileBrowseActivity extends MobileActivity
     protected void onResume() {
         super.onResume();
 
+        // Productivity mode (or its topics) changed in Settings while this screen was away.
+        if (com.newtube.mobile.productivity.ProductivityPrefs.isEnabled(this) != mProductivityShown) {
+            reloadForProductivity();
+            return;
+        }
+        updateProductivityButton();
+
         if (mPresenter != null) {
             mPresenter.onViewResumed();
         }
@@ -2509,6 +2573,7 @@ public class MobileBrowseActivity extends MobileActivity
     private static boolean isVisibleFeedItem(Video video) {
         return video != null
                 && !ShortsFilter.isShort(video)
+                && com.newtube.mobile.productivity.ProductivityFilter.isAllowed(video)
                 && (!video.isChannel() || video.isPlaylistAsChannel())
                 && !isSearchQueryTile(video);
     }
