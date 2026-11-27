@@ -58,6 +58,7 @@ import com.liskovsoft.smartyoutubetv2.common.utils.LocalPlaylistSheet;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.service.SidebarService;
+import com.liskovsoft.smartyoutubetv2.common.misc.LocalPlaylists;
 import com.liskovsoft.smartyoutubetv2.common.misc.LocalWatchLater;
 import com.liskovsoft.smartyoutubetv2.common.misc.VideoDownloads;
 import com.newtube.mobile.downloads.DownloadItem;
@@ -1381,6 +1382,16 @@ public class MobileBrowseActivity extends MobileActivity
         if (download != null) {
             if (!PlayingReturn.bringToFront(this, video)) {
                 DownloadMenu.play(this, download);
+            }
+            return;
+        }
+
+        // The phone's own Watch later plays as a queue from the tapped video down, like a phone
+        // playlist. The account's one needs nothing here: its items carry "WL", so YouTube's own
+        // playlist queue plays it.
+        if (mCurrentSectionId == LocalWatchLater.SECTION_ID && video.hasVideo()) {
+            if (!PlayingReturn.bringToFront(this, video)) {
+                LocalPlaylists.play(this, mCurrentVideos, video, false);
             }
             return;
         }
