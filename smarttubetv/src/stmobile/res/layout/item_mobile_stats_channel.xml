@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One of the most watched channels on the Stats page. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="40dp"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/stats_channel_rank"
+        android:layout_width="24dp"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@color/mobile_color_on_surface_secondary"
+        android:textSize="14sp"
+        tools:text="1" />
+
+    <TextView
+        android:id="@+id/stats_channel_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/mobile_color_on_surface"
+        android:textSize="15sp"
+        tools:text="Veritasium" />
+
+    <TextView
+        android:id="@+id/stats_channel_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:textColor="@color/mobile_color_on_surface_secondary"
+        android:textSize="14sp"
+        tools:text="12 h 4 min" />
+
+</LinearLayout>

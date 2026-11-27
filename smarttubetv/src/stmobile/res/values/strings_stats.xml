@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings > Stats (StatsFragment, LocalStats). -->
+<resources>
+    <string name="mobile_settings_stats">Stats</string>
+    <string name="mobile_settings_stats_summary">Your watch time and downloads, kept on this phone</string>
+    <string name="mobile_settings_stats_summary_on">%s watched this week</string>
+    <string name="mobile_settings_stats_summary_off">Off</string>
+
+    <string name="mobile_stats_title">Stats</string>
+
+    <string name="mobile_stats_consent_title">Keep stats on this phone?</string>
+    <string name="mobile_stats_consent_body">ReTube can count how long you watch, which channels you watch most and what you download, and show it here by day, week and month.\n\nStats are saved only on this phone. They are never uploaded, never sent to YouTube and left out of backups. You can turn them off or clear them anytime.</string>
+    <string name="mobile_stats_consent_yes">Keep stats</string>
+    <string name="mobile_stats_consent_no">No thanks</string>
+
+    <string name="mobile_stats_off_title">Stats are off</string>
+    <string name="mobile_stats_off_body">Nothing you watch or download is being counted. Turn stats on to see your watch time by day, week and month. They stay on this phone.</string>
+    <string name="mobile_stats_turn_on">Turn on stats</string>
+
+    <string name="mobile_stats_tab_day">Day</string>
+    <string name="mobile_stats_tab_week">Week</string>
+    <string name="mobile_stats_tab_month">Month</string>
+    <string name="mobile_stats_today">Today</string>
+    <string name="mobile_stats_this_week">This week</string>
+    <string name="mobile_stats_this_month">This month</string>
+    <string name="mobile_stats_compare_day">Yesterday: %s</string>
+    <string name="mobile_stats_compare_week">Last week: %s</string>
+    <string name="mobile_stats_compare_month">Last month: %s</string>
+
+    <string name="mobile_stats_streamed">Streamed</string>
+    <string name="mobile_stats_offline">From downloads</string>
+    <string name="mobile_stats_split_title">Downloads or streaming</string>
+    <string name="mobile_stats_split_none">Nothing watched in this period yet</string>
+    <string name="mobile_stats_split_more_streamed">You watch more streamed: %1$d%% streamed, %2$d%% from downloads</string>
+    <string name="mobile_stats_split_more_offline">You watch more of your downloads: %2$d%% from downloads, %1$d%% streamed</string>
+    <string name="mobile_stats_split_even">About even: %1$d%% streamed, %2$d%% from downloads</string>
+
+    <string name="mobile_stats_videos">Videos watched</string>
+    <string name="mobile_stats_downloads">Downloads</string>
+    <string name="mobile_stats_daily_average">Daily average</string>
+
+    <string name="mobile_stats_top_channels">Most watched channels · all time</string>
+    <string name="mobile_stats_all_time">All time</string>
+    <string name="mobile_stats_all_time_watch">%s watched</string>
+    <plurals name="mobile_stats_all_time_videos">
+        <item quantity="one">%d video</item>
+        <item quantity="other">%d videos</item>
+    </plurals>
+    <string name="mobile_stats_all_time_downloads">%1$d downloads (%2$d video, %3$d audio)</string>
+    <string name="mobile_stats_since">Counting since %s</string>
+
+    <string name="mobile_stats_keep">Keep stats</string>
+    <string name="mobile_stats_keep_summary">Only on this phone: never uploaded, never backed up</string>
+    <string name="mobile_stats_clear">Clear stats</string>
+    <string name="mobile_stats_clear_summary">Delete everything counted so far</string>
+    <string name="mobile_stats_clear_confirm">Clear stats?</string>
+    <string name="mobile_stats_clear_body">All watch time, channels and download counts kept on this phone are deleted. This can\'t be undone.</string>
+
+    <string name="mobile_stats_hours_minutes">%1$d h %2$d min</string>
+    <string name="mobile_stats_minutes">%d min</string>
+</resources>

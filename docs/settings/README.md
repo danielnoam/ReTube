@@ -34,6 +34,10 @@ Settings
                                 Original titles · Order of Channels in You
     History and privacy         Watch history · Clear watch history · Don't keep search history ·
                                 Clear search history
+    Stats                       its own screen (StatsFragment): watch time by day / week / month,
+                                streamed vs downloads, counts, top channels. Opt-in on first
+                                open; stored only on the phone (LocalStats, retube_local_stats.xml,
+                                kept out of every backup)
   Video and audio
     Playback                    When a video ends · When you leave the app · speed · sleep timer ·
                                 audio focus · Resume · Fullscreen · Under the video

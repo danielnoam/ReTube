@@ -13,11 +13,14 @@ import com.liskovsoft.smartyoutubetv2.common.misc.DiagnosticLog;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.newtube.mobile.stats.LocalStats;
+import com.newtube.mobile.stats.StatsCalendar;
 import com.newtube.mobile.ui.about.AboutShareRows;
 import com.newtube.mobile.ui.browse.AccountsSheet;
 import com.newtube.mobile.ui.common.ThemeMode;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -29,7 +32,7 @@ import java.util.List;
  * Settings
  *   [ Search settings ]          (SettingsSearchFragment: every row of every page)
  *   Account                      (the accounts sheet)
- *   App:    General · Tabs and feeds · History and privacy
+ *   App:    General · Tabs and feeds · History and privacy · Stats (StatsFragment)
  *   Video:  Playback · Video quality · Captions · SponsorBlock · DeArrow
  *   Other:  Backup and restore · Advanced · About
  * </pre>
@@ -124,6 +127,12 @@ public final class SettingsPages {
                 context.getString(R.string.mobile_settings_feeds_summary), FEEDS));
         rows.add(SettingsRow.page(R.drawable.ic_settings_privacy, context.getString(R.string.mobile_settings_privacy),
                 context.getString(R.string.mobile_settings_privacy_summary), PRIVACY));
+        rows.add(SettingsRow.action(R.drawable.ic_settings_stats, context.getString(R.string.mobile_settings_stats),
+                () -> statsSummary(context), page -> {
+                    if (page.getActivity() instanceof MobileSettingsActivity) {
+                        ((MobileSettingsActivity) page.getActivity()).openStats(page);
+                    }
+                }));
 
         rows.add(SettingsRow.header(context.getString(R.string.mobile_settings_group_video)));
         rows.add(SettingsRow.page(R.drawable.ic_settings_playback, context.getString(R.string.mobile_settings_playback),
@@ -154,6 +163,21 @@ public final class SettingsPages {
         String themeLabel = context.getString(theme == ThemeMode.LIGHT ? R.string.mobile_settings_theme_light_short
                 : theme == ThemeMode.DARK ? R.string.mobile_settings_theme_dark_short : R.string.mobile_settings_theme_system_short);
         return context.getString(R.string.mobile_settings_general_summary_value, themeLabel);
+    }
+
+    /** "3 h 12 min watched this week" while stats are kept; "Off" after a no. */
+    private static CharSequence statsSummary(Context context) {
+        switch (LocalStats.getConsent(context)) {
+            case LocalStats.CONSENT_ON:
+                long today = StatsCalendar.today();
+                long week = StatsCalendar.weekStart(today, Calendar.getInstance().getFirstDayOfWeek());
+                return context.getString(R.string.mobile_settings_stats_summary_on,
+                        StatsFragment.duration(context, LocalStats.snapshot(context).sum(week, today).watchMs));
+            case LocalStats.CONSENT_OFF:
+                return context.getString(R.string.mobile_settings_stats_summary_off);
+            default:
+                return context.getString(R.string.mobile_settings_stats_summary);
+        }
     }
 
     private static String versionLine(Context context) {

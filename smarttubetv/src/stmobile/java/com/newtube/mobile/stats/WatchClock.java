@@ -1,0 +1,93 @@
+package com.newtube.mobile.stats;
+
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
+
+/**
+ * Times what the player actually plays (media3's isPlaying: not paused, not buffering, not ended)
+ * for {@link LocalStats}. The video is captured when playing starts, so a stretch is never
+ * credited to the next video the player has already been handed. Main thread only.
+ */
+public final class WatchClock {
+    /** Played this long, a video counts as watched (once per time it is opened). */
+    static final long WATCHED_AFTER_MS = 30_000;
+    /** Saved this often while playing, so a killed process loses at most a minute. */
+    private static final long CHECKPOINT_MS = 60_000;
+    /** A stretch longer than this is a clock problem, not viewing. */
+    private static final long MAX_STRETCH_MS = 6 * 60 * 60_000L;
+
+    private final Context mContext;
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Runnable mCheckpoint = this::checkpoint;
+
+    private long mStartedAt = -1;
+    private String mVideoId;
+    private String mChannelId;
+    private String mChannelName;
+    private boolean mOffline;
+
+    private String mCountingVideoId;
+    private long mCountingMs;
+    private boolean mCounted;
+
+    public WatchClock(@NonNull Context context) {
+        mContext = context.getApplicationContext();
+    }
+
+    public void onPlayingChanged(boolean playing, @Nullable Video video) {
+        long now = SystemClock.elapsedRealtime();
+        flush(now);
+        if (playing && video != null && !video.incognito && video.videoId != null && LocalStats.isRecording(mContext)) {
+            mVideoId = video.videoId;
+            mChannelId = video.channelId;
+            mChannelName = video.getAuthor();
+            mOffline = video.isLocal();
+            mStartedAt = now;
+            mHandler.postDelayed(mCheckpoint, CHECKPOINT_MS);
+        }
+    }
+
+    public void stop() {
+        flush(SystemClock.elapsedRealtime());
+    }
+
+    private void checkpoint() {
+        if (mStartedAt < 0) {
+            return;
+        }
+        long now = SystemClock.elapsedRealtime();
+        flush(now);
+        mStartedAt = now;
+        mHandler.postDelayed(mCheckpoint, CHECKPOINT_MS);
+    }
+
+    private void flush(long now) {
+        mHandler.removeCallbacks(mCheckpoint);
+        if (mStartedAt < 0) {
+            return;
+        }
+        long ms = Math.min(now - mStartedAt, MAX_STRETCH_MS);
+        mStartedAt = -1;
+        if (ms <= 0) {
+            return;
+        }
+        if (!mVideoId.equals(mCountingVideoId)) {
+            mCountingVideoId = mVideoId;
+            mCountingMs = 0;
+            mCounted = false;
+        }
+        mCountingMs += ms;
+        boolean count = !mCounted && mCountingMs >= WATCHED_AFTER_MS;
+        if (count) {
+            mCounted = true;
+        }
+        LocalStats.recordWatch(mContext, mChannelId, mChannelName, mOffline, ms, count);
+    }
+}
