@@ -12,7 +12,6 @@
       also stores the refresh token.
     - shared_prefs/newtube_player_routes.xml: player-route caches that hold YouTube visitor ids
       (bot walls, embed and kept playback identities). Nothing in it is a setting.
-    - shared_prefs/retube_local_stats.xml: Settings > Stats, promised to stay on this phone.
     files/global_prefs/media_service_data (visitor cookie, device ids, hidden-content switches)
     stays in for the switches; RestoredIdentity drops its identity part on the first start after
     a restore. A restored or transferred install therefore comes back signed out, with a new
@@ -24,5 +23,4 @@
     <exclude domain="file" path="global_prefs/" />
     <exclude domain="sharedpref" path="AuthTokenCache.xml" />
     <exclude domain="sharedpref" path="newtube_player_routes.xml" />
-    <exclude domain="sharedpref" path="retube_local_stats.xml" />
 </full-backup-content>

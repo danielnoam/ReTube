@@ -9,7 +9,7 @@
     <string name="mobile_stats_title">Stats</string>
 
     <string name="mobile_stats_consent_title">Keep stats on this phone?</string>
-    <string name="mobile_stats_consent_body">ReTube can count how long you watch, which channels you watch most and what you download, and show it here by day, week and month.\n\nStats are saved only on this phone. They are never uploaded, never sent to YouTube and left out of backups. You can turn them off or clear them anytime.</string>
+    <string name="mobile_stats_consent_body">ReTube can count how long you watch, which channels you watch most and what you download, and show it here by day, week and month.\n\nStats are saved only on this phone. They are never uploaded or sent to YouTube; only your own backups include them. You can turn them off or clear them anytime.</string>
     <string name="mobile_stats_consent_yes">Keep stats</string>
     <string name="mobile_stats_consent_no">No thanks</string>
 
@@ -20,12 +20,21 @@
     <string name="mobile_stats_tab_day">Day</string>
     <string name="mobile_stats_tab_week">Week</string>
     <string name="mobile_stats_tab_month">Month</string>
+    <string name="mobile_stats_tab_year">Year</string>
+    <string name="mobile_stats_tab_all">All</string>
     <string name="mobile_stats_today">Today</string>
+    <string name="mobile_stats_yesterday">Yesterday</string>
     <string name="mobile_stats_this_week">This week</string>
+    <string name="mobile_stats_last_week">Last week</string>
     <string name="mobile_stats_this_month">This month</string>
-    <string name="mobile_stats_compare_day">Yesterday: %s</string>
-    <string name="mobile_stats_compare_week">Last week: %s</string>
-    <string name="mobile_stats_compare_month">Last month: %s</string>
+    <string name="mobile_stats_last_month">Last month</string>
+    <string name="mobile_stats_this_year">This year</string>
+    <string name="mobile_stats_last_year">Last year</string>
+    <string name="mobile_stats_week_of">Week of %s</string>
+    <!-- "Last week: 7 h 5 min" - the period before the one shown, and its watch time. -->
+    <string name="mobile_stats_compare">%1$s: %2$s</string>
+    <string name="mobile_stats_previous">Earlier</string>
+    <string name="mobile_stats_next">Later</string>
 
     <string name="mobile_stats_streamed">Streamed</string>
     <string name="mobile_stats_offline">From downloads</string>
@@ -50,7 +59,7 @@
     <string name="mobile_stats_since">Counting since %s</string>
 
     <string name="mobile_stats_keep">Keep stats</string>
-    <string name="mobile_stats_keep_summary">Only on this phone: never uploaded, never backed up</string>
+    <string name="mobile_stats_keep_summary">Only on this phone and in your own backups, never uploaded</string>
     <string name="mobile_stats_clear">Clear stats</string>
     <string name="mobile_stats_clear_summary">Delete everything counted so far</string>
     <string name="mobile_stats_clear_confirm">Clear stats?</string>

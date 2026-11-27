@@ -135,7 +135,21 @@
                         android:id="@+id/stats_tab_month"
                         style="@style/MobileStatsTab"
                         android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
                         android:text="@string/mobile_stats_tab_month" />
+
+                    <TextView
+                        android:id="@+id/stats_tab_year"
+                        style="@style/MobileStatsTab"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:text="@string/mobile_stats_tab_year" />
+
+                    <TextView
+                        android:id="@+id/stats_tab_all"
+                        style="@style/MobileStatsTab"
+                        android:layout_marginStart="4dp"
+                        android:text="@string/mobile_stats_tab_all" />
 
                 </LinearLayout>
 
@@ -144,10 +158,47 @@
                     style="@style/MobileStatsCard"
                     android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/stats_period_label"
-                        style="@style/MobileStatsCaption"
-                        tools:text="This week" />
+                    <!-- The period shown, with arrows to the one before and after it. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/stats_period_label"
+                            style="@style/MobileStatsCaption"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:textSize="14sp"
+                            tools:text="This week" />
+
+                        <ImageButton
+                            android:id="@+id/stats_prev"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/mobile_stats_previous"
+                            android:padding="8dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/ic_mobile_stats_chevron_left"
+                            android:tint="@color/mobile_color_on_surface" />
+
+                        <ImageButton
+                            android:id="@+id/stats_next"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="4dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/mobile_stats_next"
+                            android:padding="8dp"
+                            android:rotation="180"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/ic_mobile_stats_chevron_left"
+                            android:tint="@color/mobile_color_on_surface" />
+
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/stats_period_time"
@@ -301,6 +352,7 @@
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/stats_all_time_card"
                     style="@style/MobileStatsCard"
                     android:orientation="vertical">
 

@@ -20,6 +20,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.newtube.mobile.stats.LocalStats;
 import com.newtube.mobile.stats.StatsCalendar;
+import com.newtube.mobile.stats.StatsConsent;
 import com.newtube.mobile.stats.StatsData;
 import com.newtube.mobile.ui.common.MobileSnackbar;
 
@@ -33,33 +34,54 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 /**
- * Settings > Stats: watch time by day, week and month, downloads against streaming, counts and the
- * most watched channels, all from {@link LocalStats} (on this phone only). The first open asks
- * whether to keep stats at all; until the answer is yes nothing is recorded.
+ * Settings > Stats: watch time by day, week, month, year and all time, any earlier period by the
+ * arrows or a tap on its bar, downloads against streaming, counts and the most watched channels,
+ * all from {@link LocalStats}. Until stats have a yes ({@link StatsConsent}) nothing is recorded.
  */
 public final class StatsFragment extends Fragment implements SettingsAdapter.Listener {
     private static final int MODE_DAY = 0;
     private static final int MODE_WEEK = 1;
     private static final int MODE_MONTH = 2;
-    private static final int DAY_BARS = 7;
-    private static final int WEEK_BARS = 8;
-    private static final int MONTH_BARS = 6;
+    private static final int MODE_YEAR = 3;
+    private static final int MODE_ALL = 4;
+    /** Bars per tab: 7 days, 8 weeks, 6 months, 12 months (Year: its months), 5 years. */
+    private static final int[] BARS = {7, 8, 6, 12, 5};
     private static final int TOP_CHANNELS = 5;
     private static final String STATE_MODE = "mode";
+    private static final String STATE_OFFSET = "offset";
 
     private int mMode = MODE_WEEK;
+    /** Which period of the tab: 0 the current one, 1 the one before, ... */
+    private int mOffset;
     private View mOff;
     private View mContent;
     private TextView[] mTabs;
+    private View mPrev;
+    private View mNext;
     private SettingsAdapter mControls;
     @Nullable private SettingsRow mClearRow;
     @Nullable private AlertDialog mDialog;
+    /** What a tap on each bar shows: its tab and period. */
+    private int[] mBarModes = new int[0];
+    private int[] mBarOffsets = new int[0];
+
+    /** One period: its first and last day. */
+    private static final class Range {
+        final long from;
+        final long to;
+
+        Range(long from, long to) {
+            this.from = from;
+            this.to = to;
+        }
+    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (savedInstanceState != null) {
             mMode = savedInstanceState.getInt(STATE_MODE, MODE_WEEK);
+            mOffset = savedInstanceState.getInt(STATE_OFFSET, 0);
         }
     }
 
@@ -67,6 +89,7 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(STATE_MODE, mMode);
+        outState.putInt(STATE_OFFSET, mOffset);
     }
 
     @Nullable
@@ -80,14 +103,36 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
         view.findViewById(R.id.stats_turn_on).setOnClickListener(v -> setRecording(true));
 
         mTabs = new TextView[] {view.findViewById(R.id.stats_tab_day), view.findViewById(R.id.stats_tab_week),
-                view.findViewById(R.id.stats_tab_month)};
+                view.findViewById(R.id.stats_tab_month), view.findViewById(R.id.stats_tab_year),
+                view.findViewById(R.id.stats_tab_all)};
         for (int i = 0; i < mTabs.length; i++) {
             int mode = i;
             mTabs[i].setOnClickListener(v -> {
-                mMode = mode;
-                render();
+                if (mMode != mode) {
+                    mMode = mode;
+                    mOffset = 0;
+                    render();
+                }
             });
         }
+        mPrev = view.findViewById(R.id.stats_prev);
+        mNext = view.findViewById(R.id.stats_next);
+        mPrev.setOnClickListener(v -> {
+            mOffset++;
+            render();
+        });
+        mNext.setOnClickListener(v -> {
+            mOffset = Math.max(0, mOffset - 1);
+            render();
+        });
+        StatsBarChart chart = view.findViewById(R.id.stats_chart);
+        chart.setOnBarClickListener(index -> {
+            if (index < mBarModes.length && mBarOffsets[index] >= 0) {
+                mMode = mBarModes[index];
+                mOffset = mBarOffsets[index];
+                render();
+            }
+        });
 
         RecyclerView controls = view.findViewById(R.id.stats_controls);
         controls.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -101,9 +146,8 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
     public void onResume() {
         super.onResume();
         render();
-        if (LocalStats.getConsent(requireContext()) == LocalStats.CONSENT_UNASKED && (mDialog == null || !mDialog.isShowing())) {
-            askConsent();
-        }
+        // Not answered on the home screen (backed out of it): ask here.
+        StatsConsent.ask(requireActivity(), this::render);
     }
 
     @Override
@@ -113,16 +157,6 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
             mDialog = null;
         }
         super.onDestroyView();
-    }
-
-    /** The first open: keep stats or not. Back or a tap outside leaves it undecided (asked again next time). */
-    private void askConsent() {
-        mDialog = new MaterialAlertDialogBuilder(requireContext(), R.style.MobileAlertDialog)
-                .setTitle(R.string.mobile_stats_consent_title)
-                .setMessage(R.string.mobile_stats_consent_body)
-                .setPositiveButton(R.string.mobile_stats_consent_yes, (dialog, which) -> setRecording(true))
-                .setNegativeButton(R.string.mobile_stats_consent_no, (dialog, which) -> setRecording(false))
-                .show();
     }
 
     private void setRecording(boolean on) {
@@ -148,6 +182,7 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
                 .setPositiveButton(R.string.mobile_settings_clear, (dialog, which) -> {
                     LocalStats.clear(context);
                     MobileSnackbar.show(context, R.string.mobile_settings_cleared);
+                    mOffset = 0;
                     render();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -187,6 +222,24 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
         mControls.submit(rows);
     }
 
+    private Range range(int mode, int offset, long today) {
+        switch (mode) {
+            case MODE_DAY:
+                return new Range(today - offset, today - offset);
+            case MODE_MONTH:
+                return new Range(StatsCalendar.addMonths(today, -offset), StatsCalendar.addMonths(today, -offset + 1) - 1);
+            case MODE_YEAR:
+                return new Range(StatsCalendar.addYears(today, -offset), StatsCalendar.addYears(today, -offset + 1) - 1);
+            case MODE_ALL:
+                // Only used for the bars: one per year.
+                return new Range(StatsCalendar.addYears(today, -offset), StatsCalendar.addYears(today, -offset + 1) - 1);
+            case MODE_WEEK:
+            default:
+                long week = StatsCalendar.weekStart(today, Calendar.getInstance().getFirstDayOfWeek()) - 7L * offset;
+                return new Range(week, week + 6);
+        }
+    }
+
     private void renderStats(Context context, StatsData data) {
         View root = requireView();
         for (int i = 0; i < mTabs.length; i++) {
@@ -194,48 +247,38 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
         }
 
         long today = StatsCalendar.today();
-        int firstDayOfWeek = Calendar.getInstance().getFirstDayOfWeek();
-        long from;
-        long prevFrom;
-        long prevTo;
-        int label;
-        int compare;
-        int bars;
-        switch (mMode) {
-            case MODE_DAY:
-                from = today;
-                prevFrom = prevTo = today - 1;
-                label = R.string.mobile_stats_today;
-                compare = R.string.mobile_stats_compare_day;
-                bars = DAY_BARS;
-                break;
-            case MODE_MONTH:
-                from = StatsCalendar.monthStart(today);
-                prevFrom = StatsCalendar.addMonths(today, -1);
-                prevTo = from - 1;
-                label = R.string.mobile_stats_this_month;
-                compare = R.string.mobile_stats_compare_month;
-                bars = MONTH_BARS;
-                break;
-            case MODE_WEEK:
-            default:
-                from = StatsCalendar.weekStart(today, firstDayOfWeek);
-                prevFrom = from - 7;
-                prevTo = from - 1;
-                label = R.string.mobile_stats_this_week;
-                compare = R.string.mobile_stats_compare_week;
-                bars = WEEK_BARS;
-                break;
+        long sinceDay = data.isEmpty() ? today : StatsCalendar.dayOf(data.getSinceMs(), TimeZone.getDefault());
+        boolean all = mMode == MODE_ALL;
+        if (all) {
+            mOffset = 0;
+        }
+        // Nothing before the first day counted: the arrows stop at its period.
+        while (mOffset > 0 && range(mMode, mOffset, today).to < sinceDay) {
+            mOffset--;
+        }
+        Range range = range(mMode, mOffset, today);
+
+        StatsData.Totals period = all ? data.allTime() : data.sum(range.from, range.to);
+        mPrev.setVisibility(all ? View.GONE : View.VISIBLE);
+        mNext.setVisibility(all ? View.GONE : View.VISIBLE);
+        mPrev.setEnabled(range.from > sinceDay);
+        mPrev.setAlpha(range.from > sinceDay ? 1f : 0.3f);
+        mNext.setEnabled(mOffset > 0);
+        mNext.setAlpha(mOffset > 0 ? 1f : 0.3f);
+
+        ((TextView) root.findViewById(R.id.stats_period_label)).setText(all
+                ? context.getString(R.string.mobile_stats_all_time) : periodName(context, mMode, mOffset, range));
+        ((TextView) root.findViewById(R.id.stats_period_time)).setText(duration(context, period.watchMs));
+        TextView compare = root.findViewById(R.id.stats_period_compare);
+        if (all) {
+            compare.setText(data.isEmpty() ? null : context.getString(R.string.mobile_stats_since, formatDate(data.getSinceMs())));
+        } else {
+            Range previous = range(mMode, mOffset + 1, today);
+            compare.setText(context.getString(R.string.mobile_stats_compare, periodName(context, mMode, mOffset + 1, previous),
+                    duration(context, data.sum(previous.from, previous.to).watchMs)));
         }
 
-        StatsData.Totals period = data.sum(from, today);
-        StatsData.Totals previous = data.sum(prevFrom, prevTo);
-        ((TextView) root.findViewById(R.id.stats_period_label)).setText(label);
-        ((TextView) root.findViewById(R.id.stats_period_time)).setText(duration(context, period.watchMs));
-        ((TextView) root.findViewById(R.id.stats_period_compare)).setText(
-                context.getString(compare, duration(context, previous.watchMs)));
-
-        renderChart(context, data, root, today, firstDayOfWeek, bars);
+        renderChart(context, data, root, today);
 
         StatsSplitBar split = root.findViewById(R.id.stats_split);
         split.setData(period.streamedMs(), period.offlineMs);
@@ -244,11 +287,7 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
         NumberFormat numbers = NumberFormat.getIntegerInstance();
         ((TextView) root.findViewById(R.id.stats_videos)).setText(numbers.format(period.videos));
         ((TextView) root.findViewById(R.id.stats_downloads)).setText(numbers.format(period.downloads));
-        // Day: the last 7 days' average. Week and month: the days of it so far.
-        long averageFrom = mMode == MODE_DAY ? today - (DAY_BARS - 1) : from;
-        long averageDays = today - averageFrom + 1;
-        long averageMs = (mMode == MODE_DAY ? data.sum(averageFrom, today).watchMs : period.watchMs) / averageDays;
-        ((TextView) root.findViewById(R.id.stats_average)).setText(duration(context, averageMs));
+        ((TextView) root.findViewById(R.id.stats_average)).setText(duration(context, dailyAverage(data, range, today, sinceDay, all)));
 
         LinearLayout channels = root.findViewById(R.id.stats_channels);
         channels.removeAllViews();
@@ -264,51 +303,110 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
             channels.addView(row);
         }
 
-        StatsData.Totals all = data.allTime();
-        String allTime = context.getString(R.string.mobile_stats_all_time_watch, duration(context, all.watchMs))
-                + "\n" + context.getResources().getQuantityString(R.plurals.mobile_stats_all_time_videos, all.videos, all.videos)
-                + "\n" + context.getString(R.string.mobile_stats_all_time_downloads, all.downloads,
+        StatsData.Totals allTime = data.allTime();
+        String allText = context.getString(R.string.mobile_stats_all_time_watch, duration(context, allTime.watchMs))
+                + "\n" + context.getResources().getQuantityString(R.plurals.mobile_stats_all_time_videos, allTime.videos, allTime.videos)
+                + "\n" + context.getString(R.string.mobile_stats_all_time_downloads, allTime.downloads,
                 data.getVideoDownloads(), data.getAudioDownloads());
-        ((TextView) root.findViewById(R.id.stats_all_time)).setText(allTime);
+        ((TextView) root.findViewById(R.id.stats_all_time)).setText(allText);
         TextView since = root.findViewById(R.id.stats_since);
         since.setVisibility(data.isEmpty() ? View.GONE : View.VISIBLE);
         if (!data.isEmpty()) {
-            since.setText(context.getString(R.string.mobile_stats_since,
-                    java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(new Date(data.getSinceMs()))));
+            since.setText(context.getString(R.string.mobile_stats_since, formatDate(data.getSinceMs())));
         }
+        // All time repeats the card at the top: leave it out there.
+        root.findViewById(R.id.stats_all_time_card).setVisibility(all ? View.GONE : View.VISIBLE);
     }
 
-    private void renderChart(Context context, StatsData data, View root, long today, int firstDayOfWeek, int bars) {
+    /** Day: the 7 days up to the shown one. Otherwise: the days of the period counted so far. */
+    private long dailyAverage(StatsData data, Range range, long today, long sinceDay, boolean all) {
+        if (mMode == MODE_DAY) {
+            return data.sum(range.from - 6, range.to).watchMs / 7;
+        }
+        long first = all ? sinceDay : Math.max(range.from, sinceDay);
+        long last = Math.min(range.to, today);
+        long days = Math.max(1, last - first + 1);
+        long watched = all ? data.allTime().watchMs : data.sum(range.from, range.to).watchMs;
+        return watched / days;
+    }
+
+    /**
+     * The bars: the latest periods while the shown one is among them (it is lit), else the ones
+     * ending at it. Year shows its own twelve months, All time one bar per year (five years). A
+     * tap on a bar shows that period; on a month of Year or a year of All time it opens that tab.
+     */
+    private void renderChart(Context context, StatsData data, View root, long today) {
+        int bars = BARS[mMode];
+        Range[] ranges = new Range[bars];
+        mBarModes = new int[bars];
+        mBarOffsets = new int[bars];
+        int highlight = -1;
+        String skeleton;
+        if (mMode == MODE_YEAR) {
+            long january = StatsCalendar.addYears(today, -mOffset);
+            for (int i = 0; i < bars; i++) {
+                long month = StatsCalendar.addMonths(january, i);
+                ranges[i] = new Range(month, StatsCalendar.addMonths(january, i + 1) - 1);
+                mBarModes[i] = MODE_MONTH;
+                mBarOffsets[i] = StatsCalendar.monthIndex(today) - StatsCalendar.monthIndex(month);
+            }
+            if (mOffset == 0) {
+                highlight = StatsCalendar.monthIndex(today) - StatsCalendar.monthIndex(january);
+            }
+            skeleton = "MMMMM";
+        } else {
+            int barMode = mMode == MODE_ALL ? MODE_YEAR : mMode;
+            int endOffset = mOffset < bars ? 0 : mOffset;
+            for (int i = 0; i < bars; i++) {
+                int offset = endOffset + bars - 1 - i;
+                ranges[i] = range(barMode, offset, today);
+                mBarModes[i] = barMode;
+                mBarOffsets[i] = offset;
+            }
+            if (mMode != MODE_ALL) {
+                highlight = bars - 1 - (mOffset - endOffset);
+            }
+            skeleton = barMode == MODE_DAY ? "EEE" : barMode == MODE_WEEK ? "MMMd" : barMode == MODE_MONTH ? "MMM" : "yyyy";
+        }
+
+        Locale locale = Locale.getDefault();
+        SimpleDateFormat format = new SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, skeleton), locale);
+        format.setTimeZone(TimeZone.getTimeZone("UTC"));
         long[] streamed = new long[bars];
         long[] offline = new long[bars];
         String[] labels = new String[bars];
-        Locale locale = Locale.getDefault();
-        SimpleDateFormat format = new SimpleDateFormat(DateFormat.getBestDateTimePattern(locale,
-                mMode == MODE_DAY ? "EEE" : mMode == MODE_WEEK ? "MMMd" : "MMM"), locale);
-        format.setTimeZone(TimeZone.getTimeZone("UTC"));
-        long thisWeek = StatsCalendar.weekStart(today, firstDayOfWeek);
         long max = 0;
         for (int i = 0; i < bars; i++) {
-            int back = bars - 1 - i;
-            long from;
-            long to;
-            if (mMode == MODE_DAY) {
-                from = to = today - back;
-            } else if (mMode == MODE_WEEK) {
-                from = thisWeek - 7L * back;
-                to = from + 6;
-            } else {
-                from = StatsCalendar.addMonths(today, -back);
-                to = StatsCalendar.addMonths(today, -back + 1) - 1;
-            }
-            StatsData.Totals totals = data.sum(from, to);
+            StatsData.Totals totals = data.sum(ranges[i].from, ranges[i].to);
             streamed[i] = totals.streamedMs();
             offline[i] = totals.offlineMs;
-            labels[i] = format.format(new Date(StatsCalendar.utcMs(from)));
+            labels[i] = format.format(new Date(StatsCalendar.utcMs(ranges[i].from)));
             max = Math.max(max, totals.watchMs);
         }
         StatsBarChart chart = root.findViewById(R.id.stats_chart);
-        chart.setData(streamed, offline, labels, max > 0 ? duration(context, max) : null);
+        chart.setData(streamed, offline, labels, highlight, max > 0 ? duration(context, max) : null);
+    }
+
+    /** "This week", "Last week", "Week of Nov 9"; the same for days, months and years. */
+    private static String periodName(Context context, int mode, int offset, Range range) {
+        if (offset <= 1) {
+            int[][] names = {
+                    {R.string.mobile_stats_today, R.string.mobile_stats_yesterday},
+                    {R.string.mobile_stats_this_week, R.string.mobile_stats_last_week},
+                    {R.string.mobile_stats_this_month, R.string.mobile_stats_last_month},
+                    {R.string.mobile_stats_this_year, R.string.mobile_stats_last_year}};
+            return context.getString(names[mode][offset]);
+        }
+        Locale locale = Locale.getDefault();
+        String skeleton = mode == MODE_DAY ? "EEEMMMd" : mode == MODE_WEEK ? "MMMd" : mode == MODE_MONTH ? "MMMMyyyy" : "yyyy";
+        SimpleDateFormat format = new SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, skeleton), locale);
+        format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        String date = format.format(new Date(StatsCalendar.utcMs(range.from)));
+        return mode == MODE_WEEK ? context.getString(R.string.mobile_stats_week_of, date) : date;
+    }
+
+    private static String formatDate(long wallMs) {
+        return java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(new Date(wallMs));
     }
 
     private static String splitText(Context context, StatsData.Totals period) {

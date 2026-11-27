@@ -7,6 +7,7 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.TypedValue;
+import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -16,10 +17,15 @@ import androidx.core.content.ContextCompat;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 
 /**
- * The Stats page's bars: one per day, week or month, each split into streamed time (bottom) and
- * time played from downloads (on top). The last bar is the current period; the rest are dimmed.
+ * The Stats page's bars: one per day, week, month or year, each split into streamed time (bottom)
+ * and time played from downloads (on top). The period shown above the chart is lit, the rest
+ * dimmed (all lit when none is). A tap on a bar reports which.
  */
 public final class StatsBarChart extends View {
+    public interface OnBarClickListener {
+        void onBarClick(int index);
+    }
+
     private final Paint mStreamed = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mOffline = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mTrack = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -34,6 +40,8 @@ public final class StatsBarChart extends View {
     private long[] mOfflineMs = new long[0];
     private String[] mLabels = new String[0];
     @Nullable private String mMaxLabel;
+    private int mHighlight = -1;
+    @Nullable private OnBarClickListener mListener;
 
     public StatsBarChart(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -49,13 +57,38 @@ public final class StatsBarChart extends View {
         mLabelGap = dp(6);
     }
 
-    /** {@code maxLabel}: the tallest bar's value, written on the top gridline. */
-    public void setData(@NonNull long[] streamedMs, @NonNull long[] offlineMs, @NonNull String[] labels, @Nullable String maxLabel) {
+    /**
+     * {@code highlight}: the lit bar, or -1 for all. {@code maxLabel}: the tallest bar's value,
+     * written on the top gridline.
+     */
+    public void setData(@NonNull long[] streamedMs, @NonNull long[] offlineMs, @NonNull String[] labels, int highlight,
+                        @Nullable String maxLabel) {
         mStreamedMs = streamedMs;
         mOfflineMs = offlineMs;
         mLabels = labels;
+        mHighlight = highlight;
         mMaxLabel = maxLabel;
         invalidate();
+    }
+
+    public void setOnBarClickListener(@Nullable OnBarClickListener listener) {
+        mListener = listener;
+        setClickable(listener != null);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (mListener == null || mLabels.length == 0) {
+            return super.onTouchEvent(event);
+        }
+        if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+            int index = (int) (event.getX() / (getWidth() / (float) mLabels.length));
+            if (index >= 0 && index < mLabels.length) {
+                playSoundEffect(android.view.SoundEffectConstants.CLICK);
+                mListener.onBarClick(index);
+            }
+        }
+        return true;
     }
 
     @Override
@@ -88,7 +121,7 @@ public final class StatsBarChart extends View {
             float center = slot * i + slot / 2;
             float left = center - barWidth / 2;
             float right = center + barWidth / 2;
-            boolean current = i == count - 1;
+            boolean current = mHighlight < 0 || i == mHighlight;
             int alpha = current ? 255 : 140;
 
             long total = mStreamedMs[i] + mOfflineMs[i];
@@ -112,7 +145,7 @@ public final class StatsBarChart extends View {
                 canvas.restore();
             }
 
-            mLabel.setFakeBoldText(current);
+            mLabel.setFakeBoldText(i == mHighlight);
             canvas.drawText(mLabels[i], center, getHeight() - dp(2), mLabel);
         }
         mLabel.setFakeBoldText(false);

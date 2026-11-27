@@ -19,8 +19,8 @@ import java.util.TreeMap;
  * zone, see {@link StatsCalendar}). Not thread-safe: {@link LocalStats} guards it.
  */
 public final class StatsData {
-    /** About 13 months: enough for this month against the same month last year. */
-    static final int KEEP_DAYS = 400;
+    /** Ten years of days (about 15 KB a year): the Year and All time tabs' bars. */
+    static final int KEEP_DAYS = 3660;
     static final int MAX_CHANNELS = 300;
 
     static final class Day {

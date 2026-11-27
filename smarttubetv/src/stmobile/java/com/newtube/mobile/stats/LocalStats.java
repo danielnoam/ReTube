@@ -13,9 +13,9 @@ import org.json.JSONObject;
 
 /**
  * The Stats page's numbers (Settings > Stats): watch time, videos, channels and downloads, kept
- * only in this app's private storage. Nothing here is sent anywhere, and the file is left out of
- * Android's cloud backup and device transfer (backup_rules.xml, data_extraction_rules.xml) and of
- * the app's own backup zip (its name matches none of {@code Utils.BACKUP_PREFS}).
+ * only in this app's private storage. Nothing here is sent anywhere by ReTube; the file goes into
+ * backups like any setting (Daniel's call: Android's backup and ReTube's own zip, listed in
+ * {@code Utils.BACKUP_PREFS}), so a restore or a new phone keeps them.
  *
  * <p>Nothing is recorded until the person says yes on the Stats page's first open; a no, or the
  * switch turned off later, stops recording and keeps nothing new.</p>

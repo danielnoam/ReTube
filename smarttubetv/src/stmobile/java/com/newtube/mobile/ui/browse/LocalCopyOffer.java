@@ -83,7 +83,7 @@ final class LocalCopyOffer {
         maybeShow(activity);
     }
 
-    private static boolean isShowing() {
+    static boolean isShowing() {
         AlertDialog dialog = sShowing != null ? sShowing.get() : null;
         return dialog != null && dialog.isShowing();
     }

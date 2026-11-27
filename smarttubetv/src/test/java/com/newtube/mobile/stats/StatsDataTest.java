@@ -114,6 +114,9 @@ public class StatsDataTest {
         assertEquals(StatsCalendar.of(2026, Calendar.NOVEMBER, 1), StatsCalendar.monthStart(day));
         assertEquals(StatsCalendar.of(2026, Calendar.OCTOBER, 1), StatsCalendar.addMonths(day, -1));
         assertEquals(StatsCalendar.of(2025, Calendar.DECEMBER, 1), StatsCalendar.addMonths(day, -11));
+        assertEquals(StatsCalendar.of(2026, Calendar.JANUARY, 1), StatsCalendar.addYears(day, 0));
+        assertEquals(StatsCalendar.of(2024, Calendar.JANUARY, 1), StatsCalendar.addYears(day, -2));
+        assertEquals(10, StatsCalendar.monthIndex(day) - StatsCalendar.monthIndex(StatsCalendar.of(2026, Calendar.JANUARY, 5)));
 
         // 01:30 in Jerusalem is still the day before in UTC; the local date wins.
         TimeZone zone = TimeZone.getTimeZone("Asia/Jerusalem");

@@ -19,7 +19,7 @@ public final class StatsCalendar {
         return dayOf(System.currentTimeMillis(), TimeZone.getDefault());
     }
 
-    static long dayOf(long wallMs, TimeZone zone) {
+    public static long dayOf(long wallMs, TimeZone zone) {
         Calendar local = Calendar.getInstance(zone);
         local.setTimeInMillis(wallMs);
         return of(local.get(Calendar.YEAR), local.get(Calendar.MONTH), local.get(Calendar.DAY_OF_MONTH));
@@ -56,6 +56,21 @@ public final class StatsCalendar {
         Calendar utc = calendar(monthStart(day));
         utc.add(Calendar.MONTH, delta);
         return utc.getTimeInMillis() / DAY_MS;
+    }
+
+    /** January 1st of the year {@code delta} years from the one {@code day} is in. */
+    public static long addYears(long day, int delta) {
+        Calendar utc = calendar(day);
+        utc.set(Calendar.MONTH, Calendar.JANUARY);
+        utc.set(Calendar.DAY_OF_MONTH, 1);
+        utc.add(Calendar.YEAR, delta);
+        return utc.getTimeInMillis() / DAY_MS;
+    }
+
+    /** Months since year 0, for counting the months between two days. */
+    public static int monthIndex(long day) {
+        Calendar utc = calendar(day);
+        return utc.get(Calendar.YEAR) * 12 + utc.get(Calendar.MONTH);
     }
 
     private static Calendar calendar(long day) {
