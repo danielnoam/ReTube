@@ -107,6 +107,26 @@ public final class DownloadsBridge implements VideoDownloads.Handler {
         return card;
     }
 
+    /**
+     * A finished download as a play-queue entry: a fresh Video, not the grid's card, so the
+     * player's watched progress never lands on the card and Previous walks the queue rather than
+     * the grid's group (which still holds downloads that have no file yet).
+     */
+    public Video queueEntryFor(DownloadItem item) {
+        Video entry = new Video();
+        entry.videoId = item.videoId;
+        entry.downloadId = item.id;
+        entry.title = item.title;
+        entry.author = item.author;
+        entry.secondTitle = item.author;
+        entry.localUri = item.outputUri;
+        entry.cardImageUrl = item.thumbPath != null && new File(item.thumbPath).exists()
+                ? Uri.fromFile(new File(item.thumbPath)).toString()
+                : item.thumbUrl;
+        entry.badge = item.durationMs > 0 ? DownloadOptions.formatDuration(item.durationMs) : null;
+        return entry;
+    }
+
     /** Refreshes every cached card from its item; returns the ones that exist. */
     public List<Video> syncCards() {
         List<Video> result = new ArrayList<>();
