@@ -83,6 +83,16 @@ public final class LocalStats {
         }
     }
 
+    static void recordCategory(@NonNull Context context, @NonNull String category, long ms) {
+        if (!isRecording(context)) {
+            return;
+        }
+        synchronized (LOCK) {
+            data(context).addCategory(category, ms);
+            save(context);
+        }
+    }
+
     /** A download finished. Called on the download thread. */
     public static void recordDownload(@NonNull Context context, boolean audio) {
         if (!isRecording(context)) {

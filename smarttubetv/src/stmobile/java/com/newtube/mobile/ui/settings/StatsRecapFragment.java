@@ -312,6 +312,14 @@ public final class StatsRecapFragment extends Fragment {
                     getString(caption), getString(aside), 80));
         }
 
+        List<java.util.Map.Entry<String, Long>> categories = data.categories();
+        if (!categories.isEmpty() && categories.get(0).getValue() >= 60_000) {
+            java.util.Map.Entry<String, Long> top = categories.get(0);
+            mCards.add(new Card(getString(R.string.mobile_recap_category_kicker), 0, v -> top.getKey(),
+                    getString(R.string.mobile_recap_category_caption, StatsFragment.duration(context, top.getValue())),
+                    getString(R.string.mobile_recap_category_aside), 48));
+        }
+
         if (all.downloads > 0) {
             int offline = all.watchMs > 0 ? Math.round(100f * all.offlineMs / all.watchMs) : 0;
             mCards.add(new Card(getString(R.string.mobile_recap_downloads_kicker), all.downloads, numbers::format,

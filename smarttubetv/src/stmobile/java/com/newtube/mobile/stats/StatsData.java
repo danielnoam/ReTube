@@ -73,6 +73,8 @@ public final class StatsData {
     long sinceMs;
     /** All-time watch time by kind ({@link #KINDS}). */
     final Map<String, Long> kindMs = new HashMap<>();
+    /** All-time watch time by YouTube's own category ("Gaming"...), when it could be asked. */
+    final Map<String, Long> categoryMs = new HashMap<>();
     /** All-time watch time by local hour of day. */
     final long[] hourMs = new long[24];
 
@@ -154,6 +156,22 @@ public final class StatsData {
         totals.videos = totalVideos;
         totals.downloads = videoDownloads + audioDownloads;
         return totals;
+    }
+
+    void addCategory(@NonNull String category, long ms) {
+        if (category.isEmpty() || ms <= 0 || (categoryMs.size() >= 60 && !categoryMs.containsKey(category))) {
+            return;
+        }
+        Long total = categoryMs.get(category);
+        categoryMs.put(category, (total != null ? total : 0) + ms);
+    }
+
+    /** Categories, most watched first. */
+    @NonNull
+    public List<Map.Entry<String, Long>> categories() {
+        List<Map.Entry<String, Long>> list = new ArrayList<>(categoryMs.entrySet());
+        Collections.sort(list, (a, b) -> Long.compare(b.getValue(), a.getValue()));
+        return list;
     }
 
     public long kindMs(@NonNull String kind) {
@@ -284,6 +302,11 @@ public final class StatsData {
             kinds.put(entry.getKey(), entry.getValue());
         }
         json.put("kinds", kinds);
+        JSONObject categories = new JSONObject();
+        for (Map.Entry<String, Long> entry : categoryMs.entrySet()) {
+            categories.put(entry.getKey(), entry.getValue());
+        }
+        json.put("categories", categories);
         JSONArray hours = new JSONArray();
         for (long h : hourMs) {
             hours.put(h);
@@ -335,6 +358,14 @@ public final class StatsData {
                 if (kinds.has(kind)) {
                     data.kindMs.put(kind, kinds.optLong(kind));
                 }
+            }
+        }
+        JSONObject categories = json.optJSONObject("categories");
+        if (categories != null) {
+            java.util.Iterator<String> keys = categories.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                data.categoryMs.put(key, categories.optLong(key));
             }
         }
         JSONArray hours = json.optJSONArray("hours");

@@ -37,6 +37,8 @@ public final class WatchClock {
     private String mCountingVideoId;
     private long mCountingMs;
     private boolean mCounted;
+    /** Played time of the counting video not yet given to a category (its lookup is out). */
+    private long mUncategorizedMs;
 
     public WatchClock(@NonNull Context context) {
         mContext = context.getApplicationContext();
@@ -84,6 +86,7 @@ public final class WatchClock {
             mCountingVideoId = mVideoId;
             mCountingMs = 0;
             mCounted = false;
+            mUncategorizedMs = 0;
         }
         mCountingMs += ms;
         boolean count = !mCounted && mCountingMs >= WATCHED_AFTER_MS;
@@ -91,6 +94,35 @@ public final class WatchClock {
             mCounted = true;
         }
         LocalStats.recordWatch(mContext, mChannelId, mChannelName, mOffline, ms, count, mKind);
+        categorize(ms);
+    }
+
+    /**
+     * YouTube's category for the time: known, it is added at once; else the time waits, and the
+     * category is asked once the video counts as watched (a skipped video costs no request).
+     * Downloads play offline, so they aren't asked about.
+     */
+    private void categorize(long ms) {
+        String category = VideoCategories.cached(mVideoId);
+        if (category != null) {
+            LocalStats.recordCategory(mContext, category, ms);
+            return;
+        }
+        mUncategorizedMs += ms;
+        if (!mCounted || mOffline) {
+            return;
+        }
+        String videoId = mVideoId;
+        long waiting = mUncategorizedMs;
+        mUncategorizedMs = 0;
+        VideoCategories.fetch(videoId, result -> {
+            long more = 0;
+            if (videoId.equals(mCountingVideoId)) {
+                more = mUncategorizedMs; // played while the answer was on its way
+                mUncategorizedMs = 0;
+            }
+            LocalStats.recordCategory(mContext, result, waiting + more);
+        });
     }
 
     /** Shorts and live from the video itself; music from YouTube's auto-made "Artist - Topic" channels. */

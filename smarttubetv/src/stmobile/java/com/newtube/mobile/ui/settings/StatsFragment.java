@@ -304,6 +304,7 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
         }
 
         renderKinds(context, data, root, inflater);
+        renderCategories(context, data, root, inflater);
         View recap = root.findViewById(R.id.stats_recap);
         recap.setVisibility(data.isEmpty() ? View.GONE : View.VISIBLE);
         recap.setOnClickListener(v -> {
@@ -356,6 +357,28 @@ public final class StatsFragment extends Fragment implements SettingsAdapter.Lis
             ((TextView) row.findViewById(R.id.stats_channel_name)).setText(name);
             ((TextView) row.findViewById(R.id.stats_channel_time)).setText(duration(context, ms));
             kinds.addView(row);
+        }
+    }
+
+    /** YouTube's categories of what was watched, top six, all time. */
+    private static void renderCategories(Context context, StatsData data, View root, LayoutInflater inflater) {
+        LinearLayout list = root.findViewById(R.id.stats_categories);
+        list.removeAllViews();
+        List<java.util.Map.Entry<String, Long>> categories = data.categories();
+        long total = 0;
+        for (java.util.Map.Entry<String, Long> entry : categories) {
+            total += entry.getValue();
+        }
+        root.findViewById(R.id.stats_categories_card).setVisibility(total > 0 ? View.VISIBLE : View.GONE);
+        for (int i = 0; i < categories.size() && i < 6 && total > 0; i++) {
+            java.util.Map.Entry<String, Long> entry = categories.get(i);
+            View row = inflater.inflate(R.layout.item_mobile_stats_channel, list, false);
+            TextView share = row.findViewById(R.id.stats_channel_rank);
+            share.setMinWidth(Math.round(48 * context.getResources().getDisplayMetrics().density));
+            share.setText(Math.round(100f * entry.getValue() / total) + "%");
+            ((TextView) row.findViewById(R.id.stats_channel_name)).setText(entry.getKey());
+            ((TextView) row.findViewById(R.id.stats_channel_time)).setText(duration(context, entry.getValue()));
+            list.addView(row);
         }
     }
 

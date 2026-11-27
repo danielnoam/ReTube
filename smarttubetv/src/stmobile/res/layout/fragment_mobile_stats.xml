@@ -370,6 +370,24 @@
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/stats_categories_card"
+                    style="@style/MobileStatsCard"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/MobileStatsHeading"
+                        android:text="@string/mobile_stats_categories_title" />
+
+                    <LinearLayout
+                        android:id="@+id/stats_categories"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+
+                <LinearLayout
                     android:id="@+id/stats_all_time_card"
                     style="@style/MobileStatsCard"
                     android:orientation="vertical">

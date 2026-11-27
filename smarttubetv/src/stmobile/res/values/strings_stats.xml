@@ -127,6 +127,10 @@
     <string name="mobile_recap_outro_caption">Your stats will be here when you get back.</string>
     <string name="mobile_recap_outro_aside">Tap to close</string>
 
+    <string name="mobile_stats_categories_title">Categories · all time</string>
+    <string name="mobile_recap_category_kicker">Your genre</string>
+    <string name="mobile_recap_category_caption">%s of it.</string>
+    <string name="mobile_recap_category_aside">YouTube put it in that box, not us.</string>
     <string name="mobile_stats_kinds_title">What you watch · all time</string>
     <string name="mobile_stats_kind_video">Videos</string>
     <string name="mobile_stats_kind_shorts">Shorts</string>

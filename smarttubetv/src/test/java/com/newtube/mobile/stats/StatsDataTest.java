@@ -94,8 +94,16 @@ public class StatsDataTest {
         assertEquals(15 * MIN, data.dayWatchMs(300));
         assertEquals(2, data.activeDays());
 
+        data.addCategory("Gaming", 3 * MIN);
+        data.addCategory("Education", 5 * MIN);
+        data.addCategory("Gaming", 4 * MIN);
+        data.addCategory("", 9 * MIN);
+        assertEquals("Gaming", data.categories().get(0).getKey());
+        assertEquals(2, data.categories().size());
+
         StatsData back = StatsData.fromJson(data.toJson());
         assertEquals(4 * MIN, back.kindMs(StatsData.KIND_MUSIC));
+        assertEquals(7 * MIN, (long) back.categories().get(0).getValue());
         assertEquals(23, back.peakHour());
     }
 
