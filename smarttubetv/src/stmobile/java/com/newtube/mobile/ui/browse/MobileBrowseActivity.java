@@ -81,6 +81,7 @@ import com.newtube.mobile.ui.update.MobileUpdateActivity;
 import com.newtube.mobile.update.AppUpdates;
 import com.newtube.mobile.ui.playback.MiniPlayerBridge;
 import com.newtube.mobile.ui.playback.PlayerGesturePrefs;
+import com.newtube.mobile.ui.playback.PlayingReturn;
 import com.newtube.mobile.ui.playback.SystemPipBridge;
 
 import java.util.ArrayList;
@@ -1367,8 +1368,7 @@ public class MobileBrowseActivity extends MobileActivity
         }
 
         // NEWTUBE(downloads): a card that is still downloading (or failed) has no file to play
-        // yet - its tap opens the download's own menu (cancel / retry / delete). A finished one
-        // carries its local file and goes through the ordinary play route below.
+        // yet - its tap opens the download's own menu (cancel / retry / delete).
         DownloadItem download = DownloadsBridge.instance(this).itemFor(video);
         if (download != null && !download.isDone()) {
             DownloadMenu.show(this, download);
@@ -1376,6 +1376,14 @@ public class MobileBrowseActivity extends MobileActivity
         }
 
         mPresenter.onVideoItemSelected(video);
+
+        // A finished one plays with the rest of the downloads queued after it.
+        if (download != null) {
+            if (!PlayingReturn.bringToFront(this, video)) {
+                DownloadMenu.play(this, download);
+            }
+            return;
+        }
 
         // Cards without a videoId (playlists, mixes, channels) don't open the player - they kick
         // an async channel-rows fetch (VideoActionPresenter -> chooseChannelPresenter) that can

@@ -6,6 +6,7 @@ import android.net.Uri;
 
 import androidx.annotation.Nullable;
 
+import com.liskovsoft.smartyoutubetv2.common.app.models.data.Playlist;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
@@ -13,6 +14,8 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The context menu of a download: what the long-press on a Downloads card and the watch page's
@@ -67,16 +70,48 @@ public final class DownloadMenu {
         dialog.showDialog(item.title + "\n" + subtitle);
     }
 
-    /** Opens the file in the app's own player, exactly like tapping any other card. */
+    /**
+     * Opens the file in the app's own player with the other finished downloads queued around it,
+     * in the Downloads tab's order: the ones below play next, the ones above are Previous. The
+     * queue plays straight from the files, so it keeps going offline.
+     */
     public static void play(Context context, DownloadItem item) {
         if (!item.isDone() || item.outputUri == null) {
             return;
         }
-        if (!new DownloadStorage(context).exists(item.outputUri)) {
+        DownloadStorage storage = new DownloadStorage(context);
+        if (!storage.exists(item.outputUri)) {
             com.newtube.mobile.ui.common.MobileSnackbar.show(context, R.string.mobile_download_file_missing);
             return;
         }
-        PlaybackPresenter.instance(context).openVideo(DownloadsBridge.instance(context).videoFor(item));
+
+        DownloadsBridge bridge = DownloadsBridge.instance(context);
+        List<Video> order = new ArrayList<>();
+        Video first = null;
+        for (DownloadItem download : DownloadRegistry.instance(context).itemsNewestFirst()) {
+            boolean isStart = download.id.equals(item.id);
+            if (!isStart && (!download.isDone() || !storage.exists(download.outputUri))) {
+                continue;
+            }
+            Video entry = bridge.queueEntryFor(download);
+            entry.fromQueue = true;
+            order.add(entry);
+            if (isStart) {
+                first = entry;
+            }
+        }
+        if (first == null) { // deleted from the registry between the tap and now
+            first = bridge.queueEntryFor(item);
+            first.fromQueue = true;
+            order.clear();
+            order.add(first);
+        }
+
+        Playlist queue = Playlist.instance();
+        queue.clear();
+        queue.addAll(order);
+        queue.setCurrent(first);
+        PlaybackPresenter.instance(context).openVideo(first);
     }
 
     public static void share(Context context, DownloadItem item) {
