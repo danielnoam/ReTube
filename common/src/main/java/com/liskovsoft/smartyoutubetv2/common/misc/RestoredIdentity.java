@@ -5,6 +5,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 
 import com.liskovsoft.sharedutils.mylogger.Log;
+import com.liskovsoft.sharedutils.prefs.GlobalPreferences;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
 
 import java.io.File;
@@ -33,7 +34,7 @@ public final class RestoredIdentity {
     private RestoredIdentity() {
     }
 
-    /** Call after GlobalPreferences is initialised and before anything uses the media service. */
+    /** Call from Application.onCreate, before anything uses the media service. */
     public static void resetIfRestored(Context context) {
         File dir = context.getNoBackupFilesDir();
         File marker = new File(dir, MARKER);
@@ -43,13 +44,23 @@ public final class RestoredIdentity {
 
         if (reset) {
             Log.d(TAG, "Restored data: starting with a new anonymous identity");
-            MediaServiceData data = MediaServiceData.instance();
-            data.setVisitorCookie(null);
-            data.setAppInfo(null);
-            data.setFailedAppInfo(null);
-            data.setPoToken(null);
-            data.setDeviceId(null);
-            context.getSharedPreferences(PLAYER_ROUTES_PREFS, Context.MODE_PRIVATE).edit().clear().commit();
+            try {
+                // Application.onCreate runs before the first activity's attachBaseContext, which is
+                // what normally creates GlobalPreferences, and MediaServiceData.instance() throws
+                // without it: every fresh install crashed on launch until this line.
+                GlobalPreferences.instance(context);
+                MediaServiceData data = MediaServiceData.instance();
+                data.setVisitorCookie(null);
+                data.setAppInfo(null);
+                data.setFailedAppInfo(null);
+                data.setPoToken(null);
+                data.setDeviceId(null);
+                context.getSharedPreferences(PLAYER_ROUTES_PREFS, Context.MODE_PRIVATE).edit().clear().commit();
+            } catch (RuntimeException e) {
+                // Never let the reset keep the app from starting; without the marker it retries next start.
+                Log.e(TAG, "Identity reset failed: " + e.getMessage());
+                return;
+            }
         }
 
         touch(marker);
