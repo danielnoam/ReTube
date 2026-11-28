@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings > Stats (StatsFragment). Everything below the bar is filled in from LocalStats. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/newtubeColorBackground"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/mobile_settings_bar_height"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/stats_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/mobile_dialog_back"
+            android:padding="12dp"
+            android:src="@drawable/ic_mobile_back_arrow" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:paddingStart="@dimen/mobile_settings_title_inset"
+            android:paddingEnd="16dp"
+            android:text="@string/mobile_stats_title"
+            android:textColor="@color/mobile_color_on_surface"
+            android:textSize="@dimen/mobile_settings_title_size" />
+
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/stats_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Stats off (or not decided yet): what this page would show, and the way to turn it on. -->
+            <LinearLayout
+                android:id="@+id/stats_off"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/mobile_stats_card"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="24dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_settings_stats"
+                    android:tint="@color/mobile_color_on_surface_secondary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/mobile_stats_off_title"
+                    android:textColor="@color/mobile_color_on_surface"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="@string/mobile_stats_off_body"
+                    android:textColor="@color/mobile_color_on_surface_secondary"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/stats_turn_on"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    app:backgroundTint="@color/mobile_color_inverse_surface"
+                    android:text="@string/mobile_stats_turn_on"
+                    android:textAllCaps="false"
+                    android:textColor="@color/mobile_color_on_inverse_surface" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/stats_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="16dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/stats_tab_day"
+                        style="@style/MobileStatsTab"
+                        android:layout_marginEnd="4dp"
+                        android:text="@string/mobile_stats_tab_day" />
+
+                    <TextView
+                        android:id="@+id/stats_tab_week"
+                        style="@style/MobileStatsTab"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:text="@string/mobile_stats_tab_week" />
+
+                    <TextView
+                        android:id="@+id/stats_tab_month"
+                        style="@style/MobileStatsTab"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:text="@string/mobile_stats_tab_month" />
+
+                    <TextView
+                        android:id="@+id/stats_tab_year"
+                        style="@style/MobileStatsTab"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
+                        android:text="@string/mobile_stats_tab_year" />
+
+                    <TextView
+                        android:id="@+id/stats_tab_all"
+                        style="@style/MobileStatsTab"
+                        android:layout_marginStart="4dp"
+                        android:text="@string/mobile_stats_tab_all" />
+
+                </LinearLayout>
+
+                <!-- Watch time of the period, with the period before it and the bars. -->
+                <LinearLayout
+                    style="@style/MobileStatsCard"
+                    android:orientation="vertical">
+
+                    <!-- The period shown, with arrows to the one before and after it. -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/stats_period_label"
+                            style="@style/MobileStatsCaption"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:fontFamily="sans-serif-medium"
+                            android:textSize="14sp"
+                            tools:text="This week" />
+
+                        <ImageButton
+                            android:id="@+id/stats_prev"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/mobile_stats_previous"
+                            android:padding="8dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/ic_mobile_stats_chevron_left"
+                            android:tint="@color/mobile_color_on_surface" />
+
+                        <ImageButton
+                            android:id="@+id/stats_next"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="4dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/mobile_stats_next"
+                            android:padding="8dp"
+                            android:rotation="180"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/ic_mobile_stats_chevron_left"
+                            android:tint="@color/mobile_color_on_surface" />
+
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/stats_period_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textColor="@color/mobile_color_on_surface"
+                        android:textSize="34sp"
+                        tools:text="9 h 41 min" />
+
+                    <TextView
+                        android:id="@+id/stats_period_compare"
+                        style="@style/MobileStatsCaption"
+                        tools:text="Last week: 7 h 5 min" />
+
+                    <com.newtube.mobile.ui.settings.StatsBarChart
+                        android:id="@+id/stats_chart"
+                        android:layout_width="match_parent"
+                        android:layout_height="168dp"
+                        android:layout_marginTop="16dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:layout_width="10dp"
+                            android:layout_height="10dp"
+                            android:background="@drawable/mobile_stats_dot_streamed" />
+
+                        <TextView
+                            style="@style/MobileStatsCaption"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="16dp"
+                            android:text="@string/mobile_stats_streamed" />
+
+                        <View
+                            android:layout_width="10dp"
+                            android:layout_height="10dp"
+                            android:background="@drawable/mobile_stats_dot_offline" />
+
+                        <TextView
+                            style="@style/MobileStatsCaption"
+                            android:layout_marginStart="6dp"
+                            android:text="@string/mobile_stats_offline" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Downloads against streaming, for the period. -->
+                <LinearLayout
+                    style="@style/MobileStatsCard"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/MobileStatsHeading"
+                        android:text="@string/mobile_stats_split_title" />
+
+                    <com.newtube.mobile.ui.settings.StatsSplitBar
+                        android:id="@+id/stats_split"
+                        android:layout_width="match_parent"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="12dp" />
+
+                    <TextView
+                        android:id="@+id/stats_split_text"
+                        style="@style/MobileStatsCaption"
+                        android:layout_marginTop="8dp"
+                        tools:text="You watch more streaming: 72% streamed, 28% from downloads" />
+
+                </LinearLayout>
+
+                <!-- Counts for the period. -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="16dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        style="@style/MobileStatsTile"
+                        android:layout_marginEnd="6dp">
+
+                        <TextView
+                            android:id="@+id/stats_videos"
+                            style="@style/MobileStatsTileValue"
+                            tools:text="42" />
+
+                        <TextView
+                            style="@style/MobileStatsCaption"
+                            android:text="@string/mobile_stats_videos" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/MobileStatsTile"
+                        android:layout_marginStart="6dp"
+                        android:layout_marginEnd="6dp">
+
+                        <TextView
+                            android:id="@+id/stats_downloads"
+                            style="@style/MobileStatsTileValue"
+                            tools:text="5" />
+
+                        <TextView
+                            style="@style/MobileStatsCaption"
+                            android:text="@string/mobile_stats_downloads" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        style="@style/MobileStatsTile"
+                        android:layout_marginStart="6dp">
+
+                        <TextView
+                            android:id="@+id/stats_average"
+                            style="@style/MobileStatsTileValue"
+                            tools:text="1 h 23 min" />
+
+                        <TextView
+                            style="@style/MobileStatsCaption"
+                            android:text="@string/mobile_stats_daily_average" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/stats_channels_card"
+                    style="@style/MobileStatsCard"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/MobileStatsHeading"
+                        android:text="@string/mobile_stats_top_channels" />
+
+                    <LinearLayout
+                        android:id="@+id/stats_channels"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/stats_kinds_card"
+                    style="@style/MobileStatsCard"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/MobileStatsHeading"
+                        android:text="@string/mobile_stats_kinds_title" />
+
+                    <LinearLayout
+                        android:id="@+id/stats_kinds"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/stats_categories_card"
+                    style="@style/MobileStatsCard"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/MobileStatsHeading"
+                        android:text="@string/mobile_stats_categories_title" />
+
+                    <LinearLayout
+                        android:id="@+id/stats_categories"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/stats_all_time_card"
+                    style="@style/MobileStatsCard"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/MobileStatsHeading"
+                        android:text="@string/mobile_stats_all_time" />
+
+                    <TextView
+                        android:id="@+id/stats_all_time"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingExtra="4dp"
+                        android:textColor="@color/mobile_color_on_surface"
+                        android:textSize="15sp"
+                        tools:text="312 h 5 min watched\n1,204 videos\n38 downloads (31 video, 7 audio)" />
+
+                    <TextView
+                        android:id="@+id/stats_since"
+                        style="@style/MobileStatsCaption"
+                        android:layout_marginTop="8dp"
+                        tools:text="Since Nov 27, 2026" />
+
+                </LinearLayout>
+
+                <!-- The all-time recap as animated cards (StatsRecapFragment). -->
+                <Button
+                    android:id="@+id/stats_recap"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:text="@string/mobile_stats_recap_button"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    app:backgroundTint="@color/mobile_color_progress"
+                    app:cornerRadius="16dp" />
+
+            </LinearLayout>
+
+            <!-- The controls: same rows as every other settings page. -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/stats_controls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:nestedScrollingEnabled="false" />
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

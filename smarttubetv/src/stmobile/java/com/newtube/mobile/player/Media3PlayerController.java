@@ -26,6 +26,7 @@ import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.TrackSelectorManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.NetPath;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerTweaksData;
+import com.newtube.mobile.stats.WatchClock;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -67,6 +68,7 @@ public class Media3PlayerController implements Player.Listener {
     private final Context mContext;
     private final Media3SourceFactory mMediaSourceFactory;
     private final PlayerEventListener mEventListener;
+    private final WatchClock mWatchClock;
     private final Handler mMainHandler = new Handler(Looper.getMainLooper());
     /** Open generation: bumped on every open/reset/release so a stale off-main build never prepares. */
     private final SourceBuildGeneration mOpenGeneration = new SourceBuildGeneration();
@@ -239,6 +241,7 @@ public class Media3PlayerController implements Player.Listener {
         mContext = context.getApplicationContext();
         mMediaSourceFactory = new Media3SourceFactory(context);
         mEventListener = eventListener;
+        mWatchClock = new WatchClock(mContext);
         // NEWTUBE(viewport): the small-window cap is process-wide so it survives an engine restart
         // (release + fresh selector) while pinned. A NEW playback screen starts full size: a cap
         // left by a previous instance (PiP dismissed, mini card closed) must not carry over.
@@ -1003,6 +1006,7 @@ public class Media3PlayerController implements Player.Listener {
     }
 
     public void release() {
+        mWatchClock.stop();
         disarmRepoint();
         // Also prevents a running prebuild from repopulating the stash after this cleanup.
         mOpenGeneration.invalidate(this::clearStashedSource);
@@ -1365,6 +1369,12 @@ public class Media3PlayerController implements Player.Listener {
             NetPath.log(NetPath.context() + " resume-seek expired reason=ready");
         }
         dispatchStateChange(getPlayWhenReady(), playbackState);
+    }
+
+    /** NEWTUBE(stats): times what is actually played, for Settings > Stats (opt-in, on device only). */
+    @Override
+    public void onIsPlayingChanged(boolean isPlaying) {
+        mWatchClock.onPlayingChanged(isPlaying, getVideo());
     }
 
     @Override
