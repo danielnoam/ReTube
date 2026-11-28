@@ -23,7 +23,7 @@ public class TestBuildsTest {
             + "{\"tag_name\":\"test-fix-x\",\"name\":\"Test: Fix the thing\",\"prerelease\":true,\"draft\":false,"
             + " \"body\":\"version: 1.17.1-9-test.abc1234\\ncode: 1170109\\nbranch: fix/x\\ncommit: abc1234def\\npr: 31\\n\\nText\","
             + " \"assets\":[{\"name\":\"ReTube_1.17.1-9-test.abc1234_universal.apk\",\"browser_download_url\":\"u-uni\",\"size\":9},"
-            + "{\"name\":\"ReTube_1.17.1-9-test.abc1234_arm64-v8a.apk\",\"browser_download_url\":\"u-arm\",\"size\":5}]},"
+            + "{\"name\":\"ReTube_1.17.1-9-test.abc1234_arm64-v8a.apk\",\"browser_download_url\":\"u-arm\",\"size\":5,\"created_at\":\"2026-11-28T09:13:11Z\"}]},"
             + "{\"tag_name\":\"dn-1.17.1-9\",\"name\":\"ReTube dn-1.17.1-9\",\"prerelease\":false,\"draft\":false,\"body\":\"\","
             + " \"assets\":[{\"name\":\"ReTube_1.17.1-9_universal.apk\",\"browser_download_url\":\"s-uni\",\"size\":9}]},"
             + "{\"tag_name\":\"v1.5.0\",\"prerelease\":true,\"draft\":false,\"body\":\"\",\"assets\":[]}]";
@@ -53,6 +53,14 @@ public class TestBuildsTest {
         assertEquals(1170109, stable.versionCode);
         assertEquals("s-uni", stable.apkUrl);
         assertNull(TestBuilds.parseStable("[]", new String[0]));
+    }
+
+    @Test
+    public void builtTimeIsTheApksUploadTimeInUtc() throws Exception {
+        TestBuilds.Build b = TestBuilds.parseBuilds(RELEASES, new String[] {"arm64-v8a"}).get(0);
+        assertEquals(1795857191000L, b.createdAt); // 2026-11-28T09:13:11Z
+        assertEquals(0, TestBuilds.parseTime("not a time"));
+        assertEquals(0, TestBuilds.parseTime(null));
     }
 
     @Test

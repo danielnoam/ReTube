@@ -1,6 +1,7 @@
 package com.newtube.mobile.ui.settings;
 
 import android.content.Context;
+import android.text.format.DateUtils;
 
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.newtube.mobile.ui.common.MobileSnackbar;
@@ -51,10 +52,21 @@ final class TestBuildPages {
         return new SettingsPages.Page(context.getString(R.string.mobile_settings_test_builds), rows);
     }
 
+    /** Line 1: what it is (PR, branch, commit, or the version). Line 2: when it was built, and what a tap does. */
     private static String rowSummary(Context context, TestBuilds.Build build, boolean release) {
         if (build.apkUrl == null) {
             return context.getString(R.string.mobile_settings_test_build_no_apk);
         }
+        String meta = release ? build.versionName
+                : context.getString(R.string.mobile_settings_test_build_meta, build.pr, build.branch, build.shortCommit());
+        String built = build.createdAt > 0
+                ? context.getString(R.string.mobile_settings_test_build_built, DateUtils.formatDateTime(context, build.createdAt,
+                        DateUtils.FORMAT_SHOW_DATE | DateUtils.FORMAT_SHOW_TIME | DateUtils.FORMAT_ABBREV_MONTH))
+                : null;
+        return meta + "\n" + (built != null ? built + " · " : "") + action(context, build, release);
+    }
+
+    private static String action(Context context, TestBuilds.Build build, boolean release) {
         if (build.tag.equals(TestBuilds.dlTag())) {
             switch (TestBuilds.dlState()) {
                 case DOWNLOADING:
@@ -67,12 +79,10 @@ final class TestBuildPages {
                     break;
             }
         }
-        if (!release && TestBuilds.isTestBuild() && build.commit.startsWith(TestBuilds.installedCommit()) && !build.commit.isEmpty()) {
+        if (!release && TestBuilds.isTestBuild() && !build.commit.isEmpty() && build.commit.startsWith(TestBuilds.installedCommit())) {
             return context.getString(R.string.mobile_settings_test_build_installed);
         }
-        String meta = release ? build.versionName
-                : context.getString(R.string.mobile_settings_test_build_meta, build.pr, build.branch, build.shortCommit());
-        return meta + " · " + context.getString(R.string.mobile_settings_test_build_download);
+        return context.getString(R.string.mobile_settings_test_build_download);
     }
 
     private static void tap(SettingsPageFragment page, TestBuilds.Build build) {
