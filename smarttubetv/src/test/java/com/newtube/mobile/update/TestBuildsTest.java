@@ -58,7 +58,7 @@ public class TestBuildsTest {
     @Test
     public void builtTimeIsTheApksUploadTimeInUtc() throws Exception {
         TestBuilds.Build b = TestBuilds.parseBuilds(RELEASES, new String[] {"arm64-v8a"}).get(0);
-        assertEquals(1796029991000L, b.createdAt); // 2026-11-28T09:13:11Z
+        assertEquals(1795857191000L, b.createdAt); // 2026-11-28T09:13:11Z
         assertEquals(0, TestBuilds.parseTime("not a time"));
         assertEquals(0, TestBuilds.parseTime(null));
     }
