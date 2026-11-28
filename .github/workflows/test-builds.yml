@@ -22,7 +22,12 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: gh workflow run test-build.yml --ref "$BRANCH" -R "$GITHUB_REPOSITORY"
+        run: |
+          # GitHub only starts a workflow by name once it is on the default branch. Until this
+          # system is merged, a push to the labelled branch is what builds it (test-build.yml's gate).
+          if ! gh workflow run test-build.yml --ref "$BRANCH" -R "$GITHUB_REPOSITORY"; then
+            echo "::notice::test-build.yml is not on the default branch yet: the next push to $BRANCH builds it."
+          fi
 
   remove:
     if: (github.event_name == 'pull_request' && (github.event.action == 'closed' || (github.event.action == 'unlabeled' && startsWith(github.event.label.name, 'test')))) || github.event.ref_type == 'branch'

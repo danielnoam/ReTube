@@ -32,3 +32,6 @@ Try a pull request on the phone before it is released. Copied from Waypage's tes
 - Needs the `SIGNING_KEY`, `KEY_STORE_PASSWORD`, `ALIAS`, `KEY_PASSWORD` secrets (as `fork-release.yml`);
   without them nothing is built, since an unsigned APK can't install over ReTube.
 - Create the `test` and `test-android` labels once in the repository.
+- Before this system is merged to `main`, GitHub can't start `test-build.yml` by name, so adding the label
+  alone builds nothing: push to the labelled branch instead (that run's gate sees the label). After the
+  merge the label works on its own.
