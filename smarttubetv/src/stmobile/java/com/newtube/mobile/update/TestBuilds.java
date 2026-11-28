@@ -53,9 +53,11 @@ public final class TestBuilds {
         public final int versionCode;
         @Nullable public final String apkUrl;
         public final long apkSize;
+        /** When the APK was built (its upload time, ms since the epoch); 0 when GitHub gave none. */
+        public final long createdAt;
 
         Build(String tag, String title, String branch, String commit, String pr, String versionName,
-              int versionCode, @Nullable String apkUrl, long apkSize) {
+              int versionCode, @Nullable String apkUrl, long apkSize, long createdAt) {
             this.tag = tag;
             this.title = title;
             this.branch = branch;
@@ -65,6 +67,7 @@ public final class TestBuilds {
             this.versionCode = versionCode;
             this.apkUrl = apkUrl;
             this.apkSize = apkSize;
+            this.createdAt = createdAt;
         }
 
         public String shortCommit() {
@@ -178,7 +181,7 @@ public final class TestBuilds {
             out.add(new Build(tag, title.isEmpty() ? tag : title, notes[2].isEmpty() ? tag.substring(5) : notes[2],
                     notes[3], notes[4], notes[0], parseInt(notes[1]),
                     asset != null ? asset.optString("browser_download_url") : null,
-                    asset != null ? asset.optLong("size") : 0));
+                    asset != null ? asset.optLong("size") : 0, builtAt(asset, r)));
         }
         return out;
     }
@@ -199,9 +202,30 @@ public final class TestBuilds {
             String[] v = base.split("\\.");
             int code = (parseInt(v[0]) * 10000 + parseInt(v[1]) * 100 + parseInt(v[2])) * 100 + n;
             return new Build(tag, tag.substring(3), "", "", "", tag.substring(3), code,
-                    asset != null ? asset.optString("browser_download_url") : null, asset != null ? asset.optLong("size") : 0);
+                    asset != null ? asset.optString("browser_download_url") : null, asset != null ? asset.optLong("size") : 0,
+                    builtAt(asset, r));
         }
         return null;
+    }
+
+    /** The APK's own upload time, else the release's publish time, else 0. */
+    static long builtAt(@Nullable JSONObject asset, JSONObject release) {
+        long t = asset != null ? parseTime(asset.optString("created_at")) : 0;
+        return t > 0 ? t : parseTime(release.optString("published_at"));
+    }
+
+    /** GitHub's "2026-11-28T09:13:16Z" as ms since the epoch; 0 when it isn't one. */
+    static long parseTime(@Nullable String iso) {
+        if (iso == null || iso.isEmpty()) {
+            return 0;
+        }
+        try {
+            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            return f.parse(iso).getTime();
+        } catch (java.text.ParseException e) {
+            return 0;
+        }
     }
 
     /** ReTube_<ver>_<abi>.apk for the phone's first supported ABI, else the universal APK. */
