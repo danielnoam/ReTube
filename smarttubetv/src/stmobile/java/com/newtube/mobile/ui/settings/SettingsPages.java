@@ -18,6 +18,7 @@ import com.newtube.mobile.stats.StatsCalendar;
 import com.newtube.mobile.ui.about.AboutShareRows;
 import com.newtube.mobile.ui.browse.AccountsSheet;
 import com.newtube.mobile.ui.common.ThemeMode;
+import com.newtube.mobile.update.TestBuilds;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -54,6 +55,7 @@ public final class SettingsPages {
     public static final String BACKUP = "backup";
     public static final String ADVANCED = "advanced";
     public static final String ABOUT = "about";
+    public static final String TEST_BUILDS = "test_builds";
 
     /** A built page: its title and rows. */
     public static final class Page {
@@ -102,6 +104,8 @@ public final class SettingsPages {
                 return PlayerPages.advanced(context);
             case ABOUT:
                 return about(context);
+            case TEST_BUILDS:
+                return TestBuildPages.testBuilds(context);
             case ROOT:
             default:
                 return root(context);
@@ -181,6 +185,10 @@ public final class SettingsPages {
     }
 
     private static String versionLine(Context context) {
+        if (TestBuilds.isTestBuild()) {
+            return context.getString(R.string.app_name) + " " + AppInfoHelpers.getAppVersionName(context) + " · "
+                    + context.getString(R.string.mobile_settings_test_build_of, TestBuilds.installedBranch());
+        }
         return context.getString(R.string.app_name) + " " + AppInfoHelpers.getAppVersionName(context);
     }
 
@@ -198,6 +206,10 @@ public final class SettingsPages {
                     context.getString(R.string.mobile_settings_update_notify_summary),
                     checker::isUpdateCheckEnabled, checker::setUpdateCheckEnabled));
         }
+
+        rows.add(SettingsRow.page(context.getString(R.string.mobile_settings_test_builds),
+                () -> context.getString(TestBuilds.isTestBuild() ? R.string.mobile_settings_test_builds_back_here
+                        : R.string.mobile_settings_test_builds_summary), TEST_BUILDS));
 
         rows.add(SettingsRow.divider());
         rows.add(SettingsRow.action(context.getString(R.string.diagnostic_log_send),

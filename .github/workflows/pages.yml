@@ -31,6 +31,8 @@ concurrency:
 
 jobs:
   publish:
+    # A test build's pre-release (test-<branch>) is not a site change.
+    if: github.event_name != 'release' || !github.event.release.prerelease
     runs-on: ubuntu-latest
     steps:
       - name: Check out

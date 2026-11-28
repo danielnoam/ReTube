@@ -32,6 +32,7 @@ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.newtube.mobile.downloads.DownloadFolders;
 import com.newtube.mobile.ui.common.MobileSnackbar;
+import com.newtube.mobile.update.TestBuilds;
 
 import java.util.List;
 
@@ -223,6 +224,26 @@ public final class SettingsPageFragment extends Fragment implements SettingsAdap
             }
         });
         animator.start();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (SettingsPages.TEST_BUILDS.equals(mPageId)) {
+            // The list comes from GitHub: fetch it when the page opens, and repaint as it (and a download) moves.
+            TestBuilds.setListener(this::rebuild);
+            if (TestBuilds.loadState() != TestBuilds.Load.LOADING) {
+                TestBuilds.load();
+            }
+        }
+    }
+
+    @Override
+    public void onStop() {
+        if (SettingsPages.TEST_BUILDS.equals(mPageId)) {
+            TestBuilds.setListener(null);
+        }
+        super.onStop();
     }
 
     @Override

@@ -1,0 +1,111 @@
+name: Test build
+
+# Builds a branch's signed release APK and puts it on the pre-release test-<branch> (see
+# docs/releases/TEST-BUILDS.md). A push builds only when the branch's open pull request has the
+# label test or test-android, or "manual testing" in its title; a run by hand always builds.
+# The APK gets the latest dn-* release's revision as its forkRevision, so it has the same
+# versionCode as that release: it installs over it, and the release installs back over it.
+on:
+  push:
+    branches-ignore: [main]
+    paths-ignore: ["**.md", "docs/**", "website/**", "fastlane/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: test-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.g.outputs.build }}
+    steps:
+      - id: g
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then echo build=true >> "$GITHUB_OUTPUT"; exit 0; fi
+          INFO="$(gh pr list -R "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json labels,title --jq '.[:1][] | ((.labels | map(.name) | join(",")) + "\t" + .title)' || true)"
+          LABELS="${INFO%%$'\t'*}"
+          TITLE="${INFO#*$'\t'}"
+          case ",$LABELS," in
+            *,test,*|*,test-android,*) echo build=true ;;
+            *) case "${TITLE,,}" in *"manual testing"*) echo build=true ;; *) echo build=false ;; esac ;;
+          esac >> "$GITHUB_OUTPUT"
+
+  apk:
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      NDK_VERSION: 21.0.6113669   # smarttubetv/build.gradle ndkVersion, as in fork-release.yml
+      HAS_SIGNING_KEY: ${{ secrets.SIGNING_KEY != '' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Need the signing key
+        if: ${{ env.HAS_SIGNING_KEY != 'true' }}
+        run: |
+          echo "::error::No SIGNING_KEY secret, and an unsigned test build could not install over ReTube, so none is made."
+          exit 1
+
+      - name: Find the release to match
+        id: rel
+        run: |
+          TAG="$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)"
+          [[ "$TAG" =~ ^dn-[0-9]+\.[0-9]+\.[0-9]+-([1-9][0-9]?)$ ]] || { echo "::error::Latest release $TAG is not a dn-<x.y.z>-<N> tag"; exit 1; }
+          echo "n=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          echo "pr=$(gh pr list --head "$GITHUB_REF_NAME" --state open --json number --jq '.[0].number // empty')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Install the NDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;$NDK_VERSION" > /dev/null
+
+      - name: Configure signing
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$SIGNING_KEY" | base64 --decode > "$RUNNER_TEMP/key.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/key.jks"
+            echo "storePassword=$KEY_STORE_PASSWORD"
+            echo "keyAlias=$ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Build
+        run: >-
+          ./gradlew --no-daemon
+          -PforkRevision="${{ steps.rel.outputs.n }}"
+          -PtestBranch="$GITHUB_REF_NAME" -PtestCommit="$GITHUB_SHA" -PtestPr="${{ steps.rel.outputs.pr }}"
+          :smarttubetv:assembleStmobileRelease
+
+      - name: Publish the test build
+        run: |
+          shopt -s nullglob
+          files=(smarttubetv/build/outputs/renamed_apks/stmobileRelease/ReTube_*.apk)
+          [ ${#files[@]} -gt 0 ] || { echo "No APKs built"; exit 1; }
+          export V="$(basename "${files[0]}" | sed -E 's/^ReTube_(.+)_(arm64-v8a|armeabi-v7a|x86|x86_64|universal)\.apk$/\1/')"
+          export CODE=$((11701 * 100 + ${{ steps.rel.outputs.n }}))
+          bash tools/test-build.sh create "${files[@]}"

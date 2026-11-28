@@ -42,6 +42,11 @@ request logging is debug-gated. `minifyEnabled` is off (the live-DASH parser
 and pref plumbing rely on reflection over media3 internals — do not enable R8
 without auditing `LiveDashManifestParser` + `Helpers.setField` call sites).
 
+**Test builds:** label a PR `test` (or `test-android`, or put "manual testing" in its title) and CI
+publishes the pre-release `test-<branch>`, installable from Settings › About › Test builds and
+signed with the fork key. Don't raise the base version in `smarttubetv/build.gradle` on a feature
+branch. See `docs/releases/TEST-BUILDS.md`.
+
 ## Hard-won rules (violating these has already cost debugging days)
 - **logcat dumps contain NUL bytes** — plain grep silently returns nothing;
   ALWAYS `grep -a`.
