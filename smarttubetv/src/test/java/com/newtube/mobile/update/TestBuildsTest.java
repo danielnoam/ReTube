@@ -64,6 +64,16 @@ public class TestBuildsTest {
     }
 
     @Test
+    public void percentIsClampedAndZeroWithoutASize() {
+        assertEquals(0, TestBuilds.percent(0, 100));
+        assertEquals(50, TestBuilds.percent(24_000_000, 48_000_000));
+        assertEquals(100, TestBuilds.percent(48_000_000, 48_000_000));
+        assertEquals(100, TestBuilds.percent(60_000_000, 48_000_000));
+        assertEquals(0, TestBuilds.percent(5_000, 0));
+        assertEquals(0, TestBuilds.percent(-1, 100));
+    }
+
+    @Test
     public void notesStopAtTheFirstBlankLine() {
         String[] f = TestBuilds.noteFields("branch: a\n\ncommit: not-a-field");
         assertEquals("a", f[2]);

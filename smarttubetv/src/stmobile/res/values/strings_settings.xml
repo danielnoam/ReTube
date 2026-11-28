@@ -337,6 +337,7 @@
     <string name="mobile_settings_test_build_built">Built %1$s</string>
     <string name="mobile_settings_test_build_download">Tap to download</string>
     <string name="mobile_settings_test_build_downloading">Downloading… %1$d MB</string>
+    <string name="mobile_settings_test_build_downloading_pct">Downloading… %1$d%%</string>
     <string name="mobile_settings_test_build_ready">Downloaded, tap to install</string>
     <string name="mobile_settings_test_build_failed">Download failed, tap to try again</string>
     <string name="mobile_settings_test_build_installed">Installed now</string>

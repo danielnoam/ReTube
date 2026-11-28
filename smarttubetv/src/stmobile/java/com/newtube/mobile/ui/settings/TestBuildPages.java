@@ -70,7 +70,10 @@ final class TestBuildPages {
         if (build.tag.equals(TestBuilds.dlTag())) {
             switch (TestBuilds.dlState()) {
                 case DOWNLOADING:
-                    return context.getString(R.string.mobile_settings_test_build_downloading, TestBuilds.dlBytes() / (1024 * 1024));
+                    return TestBuilds.dlTotal() > 0
+                            ? context.getString(R.string.mobile_settings_test_build_downloading_pct,
+                                    TestBuilds.percent(TestBuilds.dlBytes(), TestBuilds.dlTotal()))
+                            : context.getString(R.string.mobile_settings_test_build_downloading, TestBuilds.dlBytes() / (1024 * 1024));
                 case READY:
                     return context.getString(R.string.mobile_settings_test_build_ready);
                 case FAILED:
