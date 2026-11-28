@@ -334,8 +334,10 @@
     <string name="mobile_settings_test_builds_none">No test builds right now</string>
     <string name="mobile_settings_test_builds_none_summary">A pull request gets one when it\'s labelled test</string>
     <string name="mobile_settings_test_build_meta">#%1$s · %2$s · %3$s</string>
+    <string name="mobile_settings_test_build_built">Built %1$s</string>
     <string name="mobile_settings_test_build_download">Tap to download</string>
     <string name="mobile_settings_test_build_downloading">Downloading… %1$d MB</string>
+    <string name="mobile_settings_test_build_downloading_pct">Downloading… %1$d%%</string>
     <string name="mobile_settings_test_build_ready">Downloaded, tap to install</string>
     <string name="mobile_settings_test_build_failed">Download failed, tap to try again</string>
     <string name="mobile_settings_test_build_installed">Installed now</string>

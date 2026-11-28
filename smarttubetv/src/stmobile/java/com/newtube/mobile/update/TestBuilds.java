@@ -53,9 +53,11 @@ public final class TestBuilds {
         public final int versionCode;
         @Nullable public final String apkUrl;
         public final long apkSize;
+        /** When the APK was built (its upload time, ms since the epoch); 0 when GitHub gave none. */
+        public final long createdAt;
 
         Build(String tag, String title, String branch, String commit, String pr, String versionName,
-              int versionCode, @Nullable String apkUrl, long apkSize) {
+              int versionCode, @Nullable String apkUrl, long apkSize, long createdAt) {
             this.tag = tag;
             this.title = title;
             this.branch = branch;
@@ -65,6 +67,7 @@ public final class TestBuilds {
             this.versionCode = versionCode;
             this.apkUrl = apkUrl;
             this.apkSize = apkSize;
+            this.createdAt = createdAt;
         }
 
         public String shortCommit() {
@@ -81,6 +84,7 @@ public final class TestBuilds {
     private static Dl sDl = Dl.NONE;
     @Nullable private static String sDlTag;
     private static long sBytes;
+    private static long sTotal;
     @Nullable private static File sFile;
     @Nullable private static Runnable sListener;
 
@@ -111,6 +115,15 @@ public final class TestBuilds {
     public static Dl dlState() { return sDl; }
     @Nullable public static String dlTag() { return sDlTag; }
     public static long dlBytes() { return sBytes; }
+    public static long dlTotal() { return sTotal; }
+
+    /** How far a download is, 0-100; 0 when the size isn't known. Pure: tested without Android. */
+    public static int percent(long bytes, long total) {
+        if (total <= 0 || bytes <= 0) {
+            return 0;
+        }
+        return (int) Math.min(100, bytes * 100 / total);
+    }
 
     /** The Test builds page asks to be rebuilt when something here changes (null to stop). */
     public static void setListener(@Nullable Runnable listener) {
@@ -178,7 +191,7 @@ public final class TestBuilds {
             out.add(new Build(tag, title.isEmpty() ? tag : title, notes[2].isEmpty() ? tag.substring(5) : notes[2],
                     notes[3], notes[4], notes[0], parseInt(notes[1]),
                     asset != null ? asset.optString("browser_download_url") : null,
-                    asset != null ? asset.optLong("size") : 0));
+                    asset != null ? asset.optLong("size") : 0, builtAt(asset, r)));
         }
         return out;
     }
@@ -199,9 +212,30 @@ public final class TestBuilds {
             String[] v = base.split("\\.");
             int code = (parseInt(v[0]) * 10000 + parseInt(v[1]) * 100 + parseInt(v[2])) * 100 + n;
             return new Build(tag, tag.substring(3), "", "", "", tag.substring(3), code,
-                    asset != null ? asset.optString("browser_download_url") : null, asset != null ? asset.optLong("size") : 0);
+                    asset != null ? asset.optString("browser_download_url") : null, asset != null ? asset.optLong("size") : 0,
+                    builtAt(asset, r));
         }
         return null;
+    }
+
+    /** The APK's own upload time, else the release's publish time, else 0. */
+    static long builtAt(@Nullable JSONObject asset, JSONObject release) {
+        long t = asset != null ? parseTime(asset.optString("created_at")) : 0;
+        return t > 0 ? t : parseTime(release.optString("published_at"));
+    }
+
+    /** GitHub's "2026-11-28T09:13:16Z" as ms since the epoch; 0 when it isn't one. */
+    static long parseTime(@Nullable String iso) {
+        if (iso == null || iso.isEmpty()) {
+            return 0;
+        }
+        try {
+            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
+            f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+            return f.parse(iso).getTime();
+        } catch (java.text.ParseException e) {
+            return 0;
+        }
     }
 
     /** ReTube_<ver>_<abi>.apk for the phone's first supported ABI, else the universal APK. */
@@ -269,6 +303,7 @@ public final class TestBuilds {
         sDl = Dl.DOWNLOADING;
         sDlTag = build.tag;
         sBytes = 0;
+        sTotal = build.apkSize;
         sFile = null;
         changed();
         WORKER.execute(() -> {
@@ -293,7 +328,7 @@ public final class TestBuilds {
                     while ((n = in.read(buf)) > 0) {
                         out.write(buf, 0, n);
                         total += n;
-                        if (total - lastPost > 512 * 1024) {
+                        if (total - lastPost > 256 * 1024) {
                             lastPost = total;
                             long soFar = total;
                             MAIN.post(() -> {
