@@ -173,6 +173,8 @@ public class MobileMainApplication extends MainApplication {
 
         // Release-visible launch milestones + the "first frame drawn" hook used below.
         LaunchMilestones.install(this);
+        com.newtube.mobile.productivity.ProductivityFilter.init(this);
+        com.newtube.mobile.productivity.UsageClock.install(this);
 
         // Counts our started screens from the first one on, so a PiP the user opened from the
         // player menu is not "restored" by Home gaining focus under it (SystemPipBridge).
