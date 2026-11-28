@@ -45,7 +45,7 @@ def main():
 
     gradle = (ROOT / "smarttubetv" / "build.gradle").read_text(encoding="utf-8")
     code = re.search(r"versionCode\s+(\d+)\s*\*\s*100\s*\+\s*forkRevision", gradle)
-    name = re.search(r'versionName\s+forkRevision\s*>\s*0\s*\?\s*"([\d.]+)-', gradle)
+    name = re.search(r'baseName\s*=\s*forkRevision\s*>\s*0\s*\?\s*"([\d.]+)-', gradle)
     if not code or not name or name.group(1) != base:
         sys.exit(f"build.gradle's stmobile version is not {base}: retag to match it")
     version_name = f"{base}-{revision}"

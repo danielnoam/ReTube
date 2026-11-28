@@ -115,7 +115,8 @@ public class Utils {
             "yt_service_prefs.xml",
             "com.liskovsoft.appupdatechecker2.preferences.xml",
             "com.liskovsoft.sharedutils.prefs.GlobalPreferences.xml",
-            "_preferences.xml" // before _ should be the app package name
+            "_preferences.xml", // before _ should be the app package name
+            "retube_local_stats.xml" // NEWTUBE(stats): Settings > Stats, so a restore brings them back
     };
     public static final String[] BACKUP_DIRS = {
             "app_prefs",

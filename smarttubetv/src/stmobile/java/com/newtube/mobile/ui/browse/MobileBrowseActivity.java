@@ -58,8 +58,10 @@ import com.liskovsoft.smartyoutubetv2.common.utils.LocalPlaylistSheet;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.service.SidebarService;
+import com.liskovsoft.smartyoutubetv2.common.misc.LocalPlaylists;
 import com.liskovsoft.smartyoutubetv2.common.misc.LocalWatchLater;
 import com.liskovsoft.smartyoutubetv2.common.misc.VideoDownloads;
+import com.newtube.mobile.stats.StatsConsent;
 import com.newtube.mobile.downloads.DownloadItem;
 import com.newtube.mobile.downloads.DownloadMenu;
 import com.newtube.mobile.downloads.DownloadRegistry;
@@ -1442,6 +1444,16 @@ public class MobileBrowseActivity extends MobileActivity
             return;
         }
 
+        // The phone's own Watch later plays as a queue from the tapped video down, like a phone
+        // playlist. The account's one needs nothing here: its items carry "WL", so YouTube's own
+        // playlist queue plays it.
+        if (mCurrentSectionId == LocalWatchLater.SECTION_ID && video.hasVideo()) {
+            if (!PlayingReturn.bringToFront(this, video)) {
+                LocalPlaylists.play(this, mCurrentVideos, video, false);
+            }
+            return;
+        }
+
         // Cards without a videoId (playlists, mixes, channels) don't open the player - they kick
         // an async channel-rows fetch (VideoActionPresenter -> chooseChannelPresenter) that can
         // take seconds before any screen change, and this screen's showProgressBar deliberately
@@ -1910,6 +1922,10 @@ public class MobileBrowseActivity extends MobileActivity
         // NEWTUBE(playlists): just signed in with things saved on the phone: offer to copy them.
         MediaServiceManager.instance().addAccountListener(mCopyOfferListener);
         LocalCopyOffer.maybeShow(this);
+        // NEWTUBE(stats): the first start with Settings > Stats asks whether to keep them.
+        if (!LocalCopyOffer.isShowing()) {
+            StatsConsent.maybeAskOnStart(this);
+        }
         getWindow().getDecorView().postDelayed(mUpdateCheckIfDue, UPDATE_CHECK_DELAY_MS);
         // Cheap re-sync; listener callbacks already cover changes while resumed.
         updateCastIconTint();

@@ -319,7 +319,17 @@ android {
             // updater offers it. Keep the "<code> * 100" shape: tools/fork_update_manifest.py reads it.
             def forkRevision = (project.findProperty('forkRevision') ?: '0').toString().toInteger()
             versionCode 11701 * 100 + forkRevision
-            versionName forkRevision > 0 ? "1.17.1-${forkRevision}" : "1.17.1"
+            // Test builds (docs/releases/TEST-BUILDS.md): CI passes the latest release's N as
+            // forkRevision (same versionCode, so it installs over the release and the release over it)
+            // plus the branch/commit/PR, which show in About and make the app skip update checks.
+            def testBranch = (project.findProperty('testBranch') ?: '').toString()
+            def testCommit = (project.findProperty('testCommit') ?: '').toString()
+            def testPr = (project.findProperty('testPr') ?: '').toString()
+            buildConfigField "String", "TEST_BRANCH", "\"${testBranch.replace('\\', '').replace('"', '')}\""
+            buildConfigField "String", "TEST_COMMIT", "\"${testCommit.replaceAll('[^0-9a-f]', '')}\""
+            buildConfigField "String", "TEST_PR", "\"${testPr.replaceAll('[^0-9]', '')}\""
+            def baseName = forkRevision > 0 ? "1.17.1-${forkRevision}" : "1.17.1"
+            versionName testBranch.isEmpty() ? baseName : "${baseName}-test.${testCommit.replaceAll('[^0-9a-f]', '').take(7)}"
         }
     }
 }

@@ -17,6 +17,7 @@ import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
 import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.newtube.mobile.player.Media3SourceFactory;
+import com.newtube.mobile.stats.LocalStats;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -72,6 +73,7 @@ final class DownloadJob {
             publish(videoPart, audioPart);
             mItem.state = DownloadItem.STATE_DONE;
             mItem.error = null;
+            LocalStats.recordDownload(mContext, mItem.isAudioOnly());
             retirePreviousCopies();
             deleteParts(videoPart, audioPart);
         } catch (StreamFetcher.CancelledException e) {

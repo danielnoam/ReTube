@@ -13,11 +13,15 @@ import com.liskovsoft.smartyoutubetv2.common.misc.DiagnosticLog;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.newtube.mobile.stats.LocalStats;
+import com.newtube.mobile.stats.StatsCalendar;
 import com.newtube.mobile.ui.about.AboutShareRows;
 import com.newtube.mobile.ui.browse.AccountsSheet;
 import com.newtube.mobile.ui.common.ThemeMode;
+import com.newtube.mobile.update.TestBuilds;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -29,7 +33,7 @@ import java.util.List;
  * Settings
  *   [ Search settings ]          (SettingsSearchFragment: every row of every page)
  *   Account                      (the accounts sheet)
- *   App:    General · Tabs and feeds · History and privacy
+ *   App:    General · Tabs and feeds · History and privacy · Stats (StatsFragment)
  *   Video:  Playback · Video quality · Captions · SponsorBlock · DeArrow
  *   Other:  Backup and restore · Advanced · About
  * </pre>
@@ -53,6 +57,7 @@ public final class SettingsPages {
     public static final String BACKUP = "backup";
     public static final String ADVANCED = "advanced";
     public static final String ABOUT = "about";
+    public static final String TEST_BUILDS = "test_builds";
 
     /** A built page: its title and rows. */
     public static final class Page {
@@ -105,6 +110,8 @@ public final class SettingsPages {
                 return PlayerPages.advanced(context);
             case ABOUT:
                 return about(context);
+            case TEST_BUILDS:
+                return TestBuildPages.testBuilds(context);
             case ROOT:
             default:
                 return root(context);
@@ -130,6 +137,12 @@ public final class SettingsPages {
                 context.getString(R.string.mobile_settings_feeds_summary), FEEDS));
         rows.add(SettingsRow.page(R.drawable.ic_settings_privacy, context.getString(R.string.mobile_settings_privacy),
                 context.getString(R.string.mobile_settings_privacy_summary), PRIVACY));
+        rows.add(SettingsRow.action(R.drawable.ic_settings_stats, context.getString(R.string.mobile_settings_stats),
+                () -> statsSummary(context), page -> {
+                    if (page.getActivity() instanceof MobileSettingsActivity) {
+                        ((MobileSettingsActivity) page.getActivity()).openStats(page);
+                    }
+                }));
         rows.add(SettingsRow.page(R.drawable.ic_settings_productivity, context.getString(R.string.mobile_productivity),
                 context.getString(R.string.mobile_productivity_summary), PRODUCTIVITY)
                 .summary(() -> ProductivityPages.summary(context)));
@@ -165,7 +178,26 @@ public final class SettingsPages {
         return context.getString(R.string.mobile_settings_general_summary_value, themeLabel);
     }
 
+    /** "3 h 12 min watched this week" while stats are kept; "Off" after a no. */
+    private static CharSequence statsSummary(Context context) {
+        switch (LocalStats.getConsent(context)) {
+            case LocalStats.CONSENT_ON:
+                long today = StatsCalendar.today();
+                long week = StatsCalendar.weekStart(today, Calendar.getInstance().getFirstDayOfWeek());
+                return context.getString(R.string.mobile_settings_stats_summary_on,
+                        StatsFragment.duration(context, LocalStats.snapshot(context).sum(week, today).watchMs));
+            case LocalStats.CONSENT_OFF:
+                return context.getString(R.string.mobile_settings_stats_summary_off);
+            default:
+                return context.getString(R.string.mobile_settings_stats_summary);
+        }
+    }
+
     private static String versionLine(Context context) {
+        if (TestBuilds.isTestBuild()) {
+            return context.getString(R.string.app_name) + " " + AppInfoHelpers.getAppVersionName(context) + " · "
+                    + context.getString(R.string.mobile_settings_test_build_of, TestBuilds.installedBranch());
+        }
         return context.getString(R.string.app_name) + " " + AppInfoHelpers.getAppVersionName(context);
     }
 
@@ -183,6 +215,10 @@ public final class SettingsPages {
                     context.getString(R.string.mobile_settings_update_notify_summary),
                     checker::isUpdateCheckEnabled, checker::setUpdateCheckEnabled));
         }
+
+        rows.add(SettingsRow.page(context.getString(R.string.mobile_settings_test_builds),
+                () -> context.getString(TestBuilds.isTestBuild() ? R.string.mobile_settings_test_builds_back_here
+                        : R.string.mobile_settings_test_builds_summary), TEST_BUILDS));
 
         rows.add(SettingsRow.divider());
         rows.add(SettingsRow.action(context.getString(R.string.diagnostic_log_send),
