@@ -84,6 +84,7 @@ public final class TestBuilds {
     private static Dl sDl = Dl.NONE;
     @Nullable private static String sDlTag;
     private static long sBytes;
+    private static long sTotal;
     @Nullable private static File sFile;
     @Nullable private static Runnable sListener;
 
@@ -114,6 +115,15 @@ public final class TestBuilds {
     public static Dl dlState() { return sDl; }
     @Nullable public static String dlTag() { return sDlTag; }
     public static long dlBytes() { return sBytes; }
+    public static long dlTotal() { return sTotal; }
+
+    /** How far a download is, 0-100; 0 when the size isn't known. Pure: tested without Android. */
+    public static int percent(long bytes, long total) {
+        if (total <= 0 || bytes <= 0) {
+            return 0;
+        }
+        return (int) Math.min(100, bytes * 100 / total);
+    }
 
     /** The Test builds page asks to be rebuilt when something here changes (null to stop). */
     public static void setListener(@Nullable Runnable listener) {
@@ -293,6 +303,7 @@ public final class TestBuilds {
         sDl = Dl.DOWNLOADING;
         sDlTag = build.tag;
         sBytes = 0;
+        sTotal = build.apkSize;
         sFile = null;
         changed();
         WORKER.execute(() -> {
@@ -317,7 +328,7 @@ public final class TestBuilds {
                     while ((n = in.read(buf)) > 0) {
                         out.write(buf, 0, n);
                         total += n;
-                        if (total - lastPost > 512 * 1024) {
+                        if (total - lastPost > 256 * 1024) {
                             lastPost = total;
                             long soFar = total;
                             MAIN.post(() -> {
